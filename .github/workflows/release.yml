@@ -9,8 +9,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      id-token: write
-
     steps:
       - uses: actions/checkout@v4
       - name: Set up uv
@@ -25,19 +23,12 @@ jobs:
             echo "pyproject version $version does not match tag $tag" >&2
             exit 1
           fi
-      - name: Build (CLI)
+      - name: Build CLI
         run: uv build
       - name: Build extension zip
         run: |
           cd extension
           zip -r ../aium@jonykalavera.zip . -x "tests/*"
-      - name: Publish to PyPI
-        # Requires a PyPI "trusted publisher": owner jonykalavera, repo aium,
-        # workflow release.yml. See https://docs.pypi.org/trusted-publishers/
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: dist/
-          skip-existing: true
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -45,3 +36,31 @@ jobs:
             aium@jonykalavera.zip
             dist/*.whl
             dist/*.tar.gz
+
+  publish-pypi:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.14"
+      - name: Check version matches tag
+        run: |
+          version=$(grep -E '^version = ' pyproject.toml | sed 's/.*"\(.*\)".*/\1/')
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$version" != "$tag" ]; then
+            echo "pyproject version $version does not match tag $tag" >&2
+            exit 1
+          fi
+      - name: Build
+        run: uv build
+      - name: Publish to PyPI
+        # Requires a PyPI "trusted publisher": owner jonykalavera, repo aium,
+        # workflow release.yml (job publish-pypi). See https://docs.pypi.org/trusted-publishers/
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+          skip-existing: true
