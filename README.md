@@ -4,7 +4,7 @@ AI usage monitor: a Python CLI core that polls your AI providers and a GNOME
 Shell extension that displays the results. Think of it as a system monitor, but
 for AI providers.
 
-[![PyPI version](https://img.shields.io/pypi/v/aium)](https://pypi.org/project/aium/)
+[![PyPI version](https://img.shields.io/pypi/v/aium-cli)](https://pypi.org/project/aium-cli/)
 [![CI](https://github.com/jonykalavera/aium/actions/workflows/python-package.yml/badge.svg)](https://github.com/jonykalavera/aium/actions)
 [![License](https://img.shields.io/github/license/jonykalavera/aium)](LICENSE)
 
@@ -30,7 +30,7 @@ for AI providers.
 ### CLI
 
 ```bash
-pipx install aium        # or: uv tool install aium
+pipx install aium-cli     # or: uv tool install aium-cli
 aium init
 ```
 
