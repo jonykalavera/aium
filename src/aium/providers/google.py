@@ -19,8 +19,8 @@ CLOUD_CODE_BASE = "https://cloudcode-pa.googleapis.com"
 #
 # NOTE: these are the PUBLIC client id/secret of Google's open-source Gemini
 # CLI (https://github.com/google-gemini/gemini-cli), not a user credential.
-CLIENT_ID = "REPLACED_AT_BUILD"
-CLIENT_SECRET = "REPLACED_AT_BUILD"
+CLIENT_ID = "681255809395-oo8ft2oprdrnp9e3aqf6av3hmdib135j.apps.googleusercontent.com"
+CLIENT_SECRET = "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"
 REFRESH_BUFFER_SECS = 300
 USER_AGENT = "antigravity/windows/amd64"
 X_GOOG_API_CLIENT = "google-cloud-sdk vscode_cloudshelleditor/0.1"
