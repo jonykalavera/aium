@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.aium"
+          path="/org/gnome/shell/extensions/aium/">
+    <key name="summary-mode" type="s">
+      <default>'both'</default>
+      <summary>Panel summary mode</summary>
+      <description>What the panel indicator shows: total monthly spend ('spend'), remaining balance ('balance'), or both stacked ('both').</description>
+    </key>
+    <key name="refresh-interval-seconds" type="i">
+      <default>60</default>
+      <summary>Refresh interval</summary>
+      <description>Seconds between reads of the status cache file.</description>
+    </key>
+    <key name="show-zero-balance" type="b">
+      <default>false</default>
+      <summary>Show zero-balance providers</summary>
+      <description>Whether to list providers with no balance and no monthly spend.</description>
+    </key>
+    <key name="show-label" type="b">
+      <default>true</default>
+      <summary>Show summary label</summary>
+      <description>Whether to show the spend/balance text next to the panel icon.</description>
+    </key>
+  </schema>
+</schemalist>

@@ -1,0 +1,58 @@
+[project]
+name = "aium"
+version = "0.1.0"
+description = "AI usage monitor: CLI core + GNOME Shell extension"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+    { name = "Jony Kalavera", email = "mr.jony@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "httpx>=0.28.1",
+    "keyring>=25.7.0",
+    "pydantic>=2.13.4",
+    "pydantic-settings>=2.15.0",
+    "pyyaml>=6.0.3",
+    "rich>=15.0.0",
+    "secretstorage>=3.5.0",
+    "typer>=0.27.1",
+]
+
+[project.scripts]
+aium = "aium.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.10.9,<0.11.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "pytest-blockage>=0.2.4",
+    "pytest-cov>=7.1.0",
+    "respx>=0.23.1",
+    "ruff>=0.16.4",
+    "ty>=0.0.73",
+]
+
+[tool.uv]
+package = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ty.src]
+include = ["src", "tests"]
+
+[tool.ty.environment]
+python-version = "3.14"

@@ -1,0 +1,44 @@
+.aium-summary {
+    padding: 4px 0;
+}
+
+.aium-provider {
+    spacing: 4px;
+}
+
+.aium-provider-name {
+    margin-right: 24px;
+}
+
+.aium-provider-detail {
+    font-feature-settings: 'tnum';
+}
+
+.aium-sparkline {
+    width: 96px;
+    height: 14px;
+}
+
+.aium-peak-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 4px;
+    margin-right: 6px;
+}
+
+.aium-tooltip {
+    padding: 6px 10px;
+    border-radius: 4px;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: #ffffff;
+    font-size: 12px;
+}
+
+.aium-panel-content {
+    spacing: 4px;
+}
+
+.aium-label {
+    font-size: 11px;
+    min-width: 40px;
+}

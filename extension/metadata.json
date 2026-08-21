@@ -1,0 +1,9 @@
+{
+  "uuid": "aium@jonykalavera",
+  "name": "AIUM",
+  "description": "Monitor your AI provider spending (balance, monthly usage and subscriptions)",
+  "shell-version": ["50"],
+  "version": 1,
+  "settings-schema": "org.gnome.shell.extensions.aium",
+  "url": "https://github.com/jonykalavera/aium"
+}

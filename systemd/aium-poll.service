@@ -1,0 +1,6 @@
+[Unit]
+Description=AIUM provider poll
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/aium poll
