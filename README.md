@@ -87,7 +87,7 @@ aium status
 | `openai` | OAuth (Codex) | rate-limit quota windows | none |
 | `anthropic` | OAuth (Claude Code) | spend vs monthly limit + quota windows | monthly budget remaining (`budget`) |
 | `google` | OAuth (Antigravity) | plan/tier + quota (paid tiers) | none |
-| `cursor` | IDE session | included usage vs monthly budget + quota windows | monthly budget remaining (`budget`) |
+| `cursor` | IDE session | included+on-demand spend; remaining included budget; quota windows | remaining included usage (`budget`) |
 | `zai` | API key | quota windows + plan | none |
 | `manual` | — | fixed subscription cost + renewal | — |
 
@@ -96,7 +96,9 @@ aium status
   reports it as `credits` because BYOK/free usage is billed elsewhere and does
   not decrement it.
 - **Budget** (`budget`) — remaining monthly spending limit (Anthropic extra
-  usage, Cursor included usage), not money you hold.
+  usage, Cursor **included** usage), not money you hold. Cursor's
+  `spend_this_month` is included usage consumed **plus** on-demand overage;
+  that spend is not subtracted from the included-budget row.
 - **None** — the provider exposes no balance (quota/plan only).
 
 The aggregated **Prepaid balance** total sums only prepaid-credit balances;

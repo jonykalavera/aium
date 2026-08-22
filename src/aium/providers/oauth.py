@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import json
 import os
 from pathlib import Path
@@ -71,7 +72,14 @@ def jwt_payload(token: str) -> dict | None:
         payload = token.split(".")[1]
         payload += "=" * (-len(payload) % 4)
         data = json.loads(base64.urlsafe_b64decode(payload))
-    except IndexError, ValueError, TypeError, json.JSONDecodeError:
+    except (
+        IndexError,
+        ValueError,
+        TypeError,
+        json.JSONDecodeError,
+        binascii.Error,
+        UnicodeDecodeError,
+    ):
         return None
     return data if isinstance(data, dict) else None
 

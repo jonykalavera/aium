@@ -13,7 +13,7 @@ import respx
 
 from aium.models import BalanceProviderConfig, ProviderType
 from aium.providers.base import ProviderError
-from aium.providers.cursor import TOKEN_KEY, Cursor
+from aium.providers.cursor import TOKEN_KEY, Cursor, _pct
 
 USAGE_URL = "https://cursor.com/api/usage-summary"
 
@@ -233,3 +233,39 @@ async def test_cursor_pro_plus_plan_name(cursor_creds):
     provider = Cursor(_cursor_cfg())
     async with httpx.AsyncClient() as http:
         assert await provider.fetch_plan(http, None) == "Pro Plus"
+
+
+@respx.mock
+async def test_cursor_http_500(cursor_creds):
+    respx.get(USAGE_URL).mock(return_value=httpx.Response(500, text="boom"))
+    provider = Cursor(_cursor_cfg())
+    async with httpx.AsyncClient() as http:
+        with pytest.raises(ProviderError, match="HTTP 500"):
+            await provider.fetch_plan(http, None)
+
+
+@respx.mock
+async def test_cursor_non_json_response(cursor_creds):
+    respx.get(USAGE_URL).mock(return_value=httpx.Response(200, text="not json"))
+    provider = Cursor(_cursor_cfg())
+    async with httpx.AsyncClient() as http:
+        with pytest.raises(ProviderError, match="not JSON"):
+            await provider.fetch_plan(http, None)
+
+
+def test_pct_rejects_non_finite():
+    assert _pct(float("inf")) is None
+    assert _pct(float("-inf")) is None
+    assert _pct(float("nan")) is None
+    assert _pct(12.4) == 12
+
+
+async def test_cursor_unreadable_db(tmp_path, monkeypatch):
+    path = tmp_path / "state.vscdb"
+    path.write_text("not a sqlite database")
+    monkeypatch.delenv("AIUM_CURSOR_AUTH", raising=False)
+    monkeypatch.setenv("AIUM_CURSOR_DB", str(path))
+    provider = Cursor(_cursor_cfg())
+    async with httpx.AsyncClient() as http:
+        with pytest.raises(ProviderError, match="could not open|could not read"):
+            await provider.fetch_plan(http, None)

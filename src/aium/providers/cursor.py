@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 import sqlite3
@@ -58,11 +59,19 @@ def _normalize_token(raw: str) -> str:
 
 
 def _connect_readonly(path: Path) -> sqlite3.Connection:
+    """Open Cursor's state DB read-only so a running IDE's WAL is visible.
+
+    Do not use `immutable=1`: that ignores `-wal`/`-shm`, so a token Cursor
+    just wrote can look missing while the user is signed in.
+    """
     uri = path.resolve().as_uri()
     try:
         return sqlite3.connect(f"{uri}?mode=ro", uri=True)
-    except sqlite3.Error:
-        return sqlite3.connect(f"{uri}?immutable=1", uri=True)
+    except sqlite3.Error as exc:
+        raise ProviderError(
+            f"could not open Cursor database at {path}: {exc}. "
+            "Retry, or quit the Cursor IDE if it is holding a lock."
+        ) from exc
 
 
 def _read_ide_token(path: Path) -> str:
@@ -70,10 +79,7 @@ def _read_ide_token(path: Path) -> str:
         raise ProviderError(
             f"Cursor database not found at {path}. Sign in to the Cursor IDE, then try again."
         )
-    try:
-        conn = _connect_readonly(path)
-    except sqlite3.Error as exc:
-        raise ProviderError(f"could not open Cursor database at {path}: {exc}") from exc
+    conn = _connect_readonly(path)
     try:
         row = conn.execute("SELECT value FROM ItemTable WHERE key = ?", (TOKEN_KEY,)).fetchone()
     except sqlite3.Error as exc:
@@ -153,7 +159,7 @@ def _cents(value: object) -> float | None:
 def _pct(value: object) -> int | None:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return None
-    if value != value:  # NaN
+    if not math.isfinite(value):
         return None
     return max(0, round(value))
 
@@ -180,8 +186,12 @@ class Cursor(BalanceProvider):
 
     Hits the dashboard's undocumented `GET /api/usage-summary`. Reports the
     two monthly pools as quota windows (auto = Cursor Models, api = Other
-    Models), remaining included usage as a budget, and consumed included +
-    on-demand cents as spend.
+    Models).
+
+    Spend and budget are both USD but different pools: `fetch_usage()` is
+    included usage consumed plus on-demand overage (month-to-date spend);
+    `fetch_balance()` is remaining included-usage budget only and does not
+    shrink by on-demand.
     """
 
     def __init__(self, config: BalanceProviderConfig):
@@ -204,8 +214,14 @@ class Cursor(BalanceProvider):
         resp = await http.get(USAGE_URL, headers=self._headers())
         if resp.status_code in (401, 403):
             raise ProviderError("Cursor session rejected. Sign in to the Cursor IDE again.")
-        resp.raise_for_status()
-        payload = resp.json()
+        try:
+            resp.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            raise ProviderError(f"Cursor usage-summary HTTP {exc.response.status_code}") from exc
+        try:
+            payload = resp.json()
+        except json.JSONDecodeError as exc:
+            raise ProviderError("Cursor usage-summary response is not JSON") from exc
         if not isinstance(payload, dict):
             raise ProviderError("Cursor usage-summary response is not an object")
         self._data = payload
