@@ -26,8 +26,10 @@ the uv venv. Run `make uv.check` before considering work done.
 
 The systemd timer (`systemctl --user list-timers aium-poll.timer`) runs the
 **installed** binary at `~/.local/bin/aium`, not `uv run aium` — after core
-changes, reinstall it (`uv tool install --force .` or `./local-install.sh`), or
-the timer keeps polling with the previous build.
+changes, reinstall it (`uv tool install --force --no-cache .` or
+`./local-install.sh`), or the timer keeps polling with the previous build.
+`uv tool install` may reuse a stale wheel from its cache for `file://`
+projects; pass `--no-cache` (or `--refresh`) to force a rebuild.
 
 `install.sh` is the remote `curl | bash` installer (downloads from GitHub, honors
 `AIUM_VERSION`); `local-install.sh` installs from this repo for development.

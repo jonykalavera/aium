@@ -6,7 +6,7 @@ EXT_UUID="aium@jonykalavera"
 EXT_DIR="$HOME/.local/share/gnome-shell/extensions/$EXT_UUID"
 
 echo "==> Installing aium CLI via uv tool"
-uv tool install --force .
+uv tool install --force --no-cache .
 
 echo "==> Installing systemd user units"
 mkdir -p ~/.config/systemd/user
