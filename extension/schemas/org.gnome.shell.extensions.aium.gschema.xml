@@ -2,10 +2,15 @@
 <schemalist>
   <schema id="org.gnome.shell.extensions.aium"
           path="/org/gnome/shell/extensions/aium/">
-    <key name="summary-mode" type="s">
-      <default>'both'</default>
-      <summary>Panel summary mode</summary>
-      <description>What the panel indicator shows: total monthly spend ('spend'), remaining balance ('balance'), or both stacked ('both').</description>
+    <key name="top-metric" type="s">
+      <default>'spend_month'</default>
+      <summary>Top line metric</summary>
+      <description>What the top line of the panel indicator shows: 'spend_month', 'spend_today', 'balance' or 'none'.</description>
+    </key>
+    <key name="bottom-metric" type="s">
+      <default>'balance'</default>
+      <summary>Bottom line metric</summary>
+      <description>What the bottom line of the panel indicator shows: 'spend_month', 'spend_today', 'balance' or 'none'.</description>
     </key>
     <key name="refresh-interval-seconds" type="i">
       <default>60</default>

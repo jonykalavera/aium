@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 
 def month_bounds(now: datetime | None = None) -> tuple[datetime, datetime]:
@@ -15,25 +15,38 @@ def month_bounds(now: datetime | None = None) -> tuple[datetime, datetime]:
     return start, nxt
 
 
-def monthly_spend(snapshots: list[tuple[datetime, float]], now: datetime | None = None) -> float:
-    """Total spend this month = opening balance + deposits - closing balance.
+def local_day_bounds(now: datetime | None = None) -> tuple[datetime, datetime]:
+    """Start/end of the current **local** day (midnight to midnight, aware)."""
+    now = now or datetime.now().astimezone()
+    local = now.astimezone()
+    start = local.replace(hour=0, minute=0, second=0, microsecond=0)
+    # Next local midnight (handles DST-free simple case; one day ahead).
+    end = start + timedelta(days=1)
+    # Convert to a stable timezone-free comparison by returning both as-is; the
+    # caller compares against UTC-aware snapshots (Python handles aware vs aware).
+    return start, end
 
-    Positive balance jumps are treated as top-ups (deposits) so recharges do not
-    inflate the computed spend. The opening balance is the last snapshot before
-    the month when available (the balance carried into the month); otherwise it
-    is the first snapshot of the month. Providers without any snapshot this
-    month return 0.
+
+def period_spend(
+    snapshots: list[tuple[datetime, float]],
+    start: datetime,
+    end: datetime,
+) -> float:
+    """Spend over `[start, end)` = opening balance + deposits - closing balance.
+
+    Positive balance jumps are treated as top-ups (deposits). Opening balance is
+    the last snapshot before `start` (carried in), else the first in-period.
+    Returns 0 if there is no snapshot in the period.
     """
-    start, end = month_bounds(now)
     prev = [b for ts, b in snapshots if ts < start]
-    month = [(ts, b) for ts, b in snapshots if start <= ts < end]
-    if not month:
+    period = [(ts, b) for ts, b in snapshots if start <= ts < end]
+    if not period:
         return 0.0
 
-    opening = prev[-1] if prev else month[0][1]
-    closing = month[-1][1]
+    opening = prev[-1] if prev else period[0][1]
+    closing = period[-1][1]
     deposits = 0.0
-    for (_, prev_b), (_, cur_b) in zip(month, month[1:], strict=False):
+    for (_, prev_b), (_, cur_b) in zip(period, period[1:], strict=False):
         delta = cur_b - prev_b
         if delta > 0:
             deposits += delta
@@ -42,25 +55,39 @@ def monthly_spend(snapshots: list[tuple[datetime, float]], now: datetime | None 
     return max(0.0, round(spend, 6))
 
 
+def monthly_spend(snapshots: list[tuple[datetime, float]], now: datetime | None = None) -> float:
+    """Total spend this month = opening balance + deposits - closing balance."""
+    start, end = month_bounds(now)
+    return period_spend(snapshots, start, end)
+
+
+def period_usage_spend(
+    history: list[tuple[datetime, float]],
+    start: datetime,
+    end: datetime,
+) -> float:
+    """Spend over `[start, end)` from a cumulative-usage history.
+
+    `history` is (timestamp, cumulative usage) ascending. Spend = closing usage
+    minus the usage carried into the period (last record before `start`, or the
+    first in-period). Robust to cumulative counters and resets.
+    """
+    prev = [u for ts, u in history if ts < start]
+    period = [(ts, u) for ts, u in history if start <= ts < end]
+    if not period:
+        return 0.0
+
+    opening = prev[-1] if prev else period[0][1]
+    closing = period[-1][1]
+    return max(0.0, round(closing - opening, 4))
+
+
 def usage_monthly_spend(
     history: list[tuple[datetime, float]], now: datetime | None = None
 ) -> float:
-    """Monthly spend from a cumulative-usage history.
-
-    `history` is a list of (timestamp, cumulative usage) pairs, ascending. Spend
-    this month = closing cumulative usage minus the cumulative usage carried
-    into the month (the last record before the month start, or the first record
-    of the month). Robust to cumulative counters and monthly resets.
-    """
+    """Monthly spend from a cumulative-usage history."""
     start, end = month_bounds(now)
-    prev = [u for ts, u in history if ts < start]
-    month = [(ts, u) for ts, u in history if start <= ts < end]
-    if not month:
-        return 0.0
-
-    opening = prev[-1] if prev else month[0][1]
-    closing = month[-1][1]
-    return max(0.0, round(closing - opening, 4))
+    return period_usage_spend(history, start, end)
 
 
 def in_utc_window(now: datetime, window: str | None) -> bool:

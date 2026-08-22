@@ -1,6 +1,24 @@
 // Pure status/display logic (no gi:// or shell resource imports).
 
-import {money} from './format.js';
+import {money, moneyShort} from './format.js';
+
+const METRICS = {
+    spend_month: totals => moneyShort(totals.spend_this_month, totals.currency),
+    spend_today: totals => moneyShort(totals.spend_today, totals.currency),
+    balance: totals => moneyShort(totals.balance, totals.currency),
+    none: () => '',
+};
+
+export function panelMetric(total, metric) {
+    return (METRICS[metric] ?? METRICS.none)(total ?? {});
+}
+
+export function panelLabel(totals, topMetric, bottomMetric) {
+    return {
+        top: panelMetric(totals, topMetric),
+        bottom: panelMetric(totals, bottomMetric),
+    };
+}
 
 export function providerDetail(provider) {
     if (!provider.ok)
@@ -20,6 +38,9 @@ export function providerDetail(provider) {
         ? ` · ${money(provider.spend_this_month, provider.currency)} spent`
         : '';
     let detail = `${balance}${spent}`;
+
+    if (provider.spend_today != null && provider.spend_today > 0)
+        detail += ` · today ${moneyShort(provider.spend_today, provider.currency)}`;
 
     if (provider.peak != null)
         detail += provider.peak ? ' · peak' : ' · off-peak';

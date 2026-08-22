@@ -10,8 +10,8 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
-import {money, moneyShort} from './lib/format.js';
-import {isRelevant, providerDetail, severityColor, tooltipText} from './lib/status.js';
+import {money} from './lib/format.js';
+import {isRelevant, panelLabel, providerDetail, severityColor, tooltipText} from './lib/status.js';
 
 const STATUS_PATH = GLib.build_filenamev([
     GLib.get_user_cache_dir(), 'aium', 'status.json',
@@ -155,7 +155,8 @@ export default class AiumExtension extends Extension {
             () => this._installTimer(),
         );
         this._settings.connect('changed::show-label', () => this._refresh());
-        this._settings.connect('changed::summary-mode', () => this._refresh());
+        this._settings.connect('changed::top-metric', () => this._refresh());
+        this._settings.connect('changed::bottom-metric', () => this._refresh());
     }
 
     _createIcon() {
@@ -214,16 +215,12 @@ export default class AiumExtension extends Extension {
             this._label.text = 'n/a';
             return;
         }
-        const totals = status.totals ?? {};
-        const mode = this._settings.get_string('summary-mode');
-        const spend = moneyShort(totals.spend_this_month, totals.currency);
-        const balance = moneyShort(totals.balance, totals.currency);
-        if (mode === 'spend')
-            this._label.text = spend;
-        else if (mode === 'balance')
-            this._label.text = balance;
-        else
-            this._label.text = `${spend}\n${balance}`;
+        const {top, bottom} = panelLabel(
+            status.totals ?? {},
+            this._settings.get_string('top-metric'),
+            this._settings.get_string('bottom-metric'),
+        );
+        this._label.text = (top && bottom) ? `${top}\n${bottom}` : (top || bottom);
     }
 
     _updateTooltip(status) {

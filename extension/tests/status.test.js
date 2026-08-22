@@ -1,4 +1,4 @@
-import {isRelevant, providerDetail, severityColor, tooltipText} from '../lib/status.js';
+import {isRelevant, panelLabel, providerDetail, severityColor, tooltipText} from '../lib/status.js';
 import {assertClose, assertDeepEqual, assertEqual, describe, it} from './_assert.js';
 
 const balanceProvider = {
@@ -114,5 +114,23 @@ describe('isRelevant', () => {
     });
     it('assertClose sanity', () => {
         assertClose(0.1 + 0.2, 0.3);
+    });
+});
+
+describe('panelLabel', () => {
+    const totals = {spend_this_month: 12.34, spend_today: 2.5, balance: 20, currency: 'USD'};
+    it('both metrics', () => {
+        const l = panelLabel(totals, 'spend_today', 'balance');
+        assertEqual(l.top, '$2.50');
+        assertEqual(l.bottom, '$20.00');
+    });
+    it('monthly + today', () => {
+        const l = panelLabel(totals, 'spend_month', 'spend_today');
+        assertEqual(l.top, '$12.34');
+        assertEqual(l.bottom, '$2.50');
+    });
+    it('hide with none', () => {
+        const l = panelLabel(totals, 'spend_today', 'none');
+        assertEqual(l.bottom, '');
     });
 });

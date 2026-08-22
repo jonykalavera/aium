@@ -87,6 +87,7 @@ class ProviderStatus(BaseModel):
     balance_kind: str | None = None
     balance_label: str | None = None
     spend_this_month: float | None = None
+    spend_today: float | None = None
     usage: Usage | None = None
     quota: list[QuotaWindow] = []
     sparkline: list[float] | None = None
@@ -100,6 +101,7 @@ class ProviderStatus(BaseModel):
 
 class Totals(BaseModel):
     spend_this_month: float = 0.0
+    spend_today: float = 0.0
     balance: float = 0.0
     currency: str = "USD"
 

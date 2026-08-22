@@ -14,28 +14,32 @@ export default class AiumPreferences extends ExtensionPreferences {
         const group = new Adw.PreferencesGroup({ title: 'Panel' });
         page.add(group);
 
-        const modes = [
-            { label: 'Both (spend over balance)', value: 'both' },
-            { label: 'Spend only', value: 'spend' },
-            { label: 'Balance only', value: 'balance' },
+        const metrics = [
+            { label: 'Monthly spend', value: 'spend_month' },
+            { label: 'Daily spend', value: 'spend_today' },
+            { label: 'Balance', value: 'balance' },
+            { label: 'None (hide)', value: 'none' },
         ];
-        const list = new Gtk.StringList();
-        for (const mode of modes)
-            list.append(mode.label);
-        const combo = new Adw.ComboRow({
-            title: 'Panel summary',
-            subtitle: 'What the panel indicator shows',
-            model: list,
-        });
-        const selectMode = value => {
-            const index = modes.findIndex(mode => mode.value === value);
-            return index >= 0 ? index : 0;
+
+        const metricCombo = (title, subtitle, key) => {
+            const list = new Gtk.StringList();
+            for (const metric of metrics)
+                list.append(metric.label);
+            const combo = new Adw.ComboRow({
+                title,
+                subtitle,
+                model: list,
+            });
+            const index = metrics.findIndex(m => m.value === settings.get_string(key));
+            combo.selected = index >= 0 ? index : 0;
+            combo.connect('notify::selected', () => {
+                settings.set_string(key, metrics[combo.selected].value);
+            });
+            return combo;
         };
-        combo.selected = selectMode(settings.get_string('summary-mode'));
-        combo.connect('notify::selected', () => {
-            settings.set_string('summary-mode', modes[combo.selected].value);
-        });
-        group.add(combo);
+
+        group.add(metricCombo('Top line', 'Left/top metric in the panel', 'top-metric'));
+        group.add(metricCombo('Bottom line', 'Right/bottom metric in the panel', 'bottom-metric'));
 
         const showZero = new Adw.SwitchRow({
             title: 'Show zero-balance providers',

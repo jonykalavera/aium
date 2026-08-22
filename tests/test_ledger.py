@@ -1,6 +1,15 @@
 from datetime import UTC, datetime
 
-from aium.ledger import in_utc_window, month_bounds, monthly_spend
+import pytest
+
+from aium.ledger import (
+    in_utc_window,
+    local_day_bounds,
+    month_bounds,
+    monthly_spend,
+    period_spend,
+    period_usage_spend,
+)
 
 
 def _ts(day: int) -> datetime:
@@ -62,3 +71,31 @@ def test_in_window_none_or_malformed():
     assert in_utc_window(_utc(10, 0), None) is False
     assert in_utc_window(_utc(10, 0), "garbage") is False
     assert in_utc_window(_utc(10, 0), "25:99-16:30") is False
+
+
+def test_period_spend_within_day():
+    day_start = datetime(2026, 8, 21, 0, 0, tzinfo=UTC)
+    day_end = datetime(2026, 8, 22, 0, 0, tzinfo=UTC)
+    snaps = [
+        (datetime(2026, 8, 20, 23, 0, tzinfo=UTC), 100.0),  # carried in
+        (datetime(2026, 8, 21, 9, 0, tzinfo=UTC), 95.0),
+        (datetime(2026, 8, 21, 15, 0, tzinfo=UTC), 90.0),  # spent 5 then 5
+    ]
+    assert period_spend(snaps, day_start, day_end) == 10.0
+
+
+def test_period_usage_spend():
+    day_start = datetime(2026, 8, 21, 0, 0, tzinfo=UTC)
+    day_end = datetime(2026, 8, 22, 0, 0, tzinfo=UTC)
+    hist = [
+        (datetime(2026, 8, 20, 23, 0, tzinfo=UTC), 6.28),
+        (datetime(2026, 8, 21, 9, 0, tzinfo=UTC), 6.40),
+        (datetime(2026, 8, 21, 18, 0, tzinfo=UTC), 7.10),
+    ]
+    assert period_usage_spend(hist, day_start, day_end) == pytest.approx(0.82, rel=1e-3)
+
+
+def test_local_day_bounds_is_midnight():
+    start, end = local_day_bounds()
+    assert start.hour == 0 and start.minute == 0
+    assert (end - start).days == 1

@@ -210,6 +210,7 @@ def test_aggregate_only_prepaid_balance():
         balance=Balance(available=10),
         balance_kind="prepaid",
         spend_this_month=2,
+        spend_today=0.5,
     )
     budget = ProviderStatus(
         id="an",
@@ -219,7 +220,9 @@ def test_aggregate_only_prepaid_balance():
         balance=Balance(available=20),
         balance_kind="budget",
         spend_this_month=0,
+        spend_today=0,
     )
     totals = _aggregate([prepaid, budget], "USD")
     assert totals.balance == 10.0
     assert totals.spend_this_month == 2.0
+    assert totals.spend_today == 0.5
