@@ -23,11 +23,28 @@ for AI providers.
 
 ## Screenshots
 
-> TODO: add a panel/popover screenshot to `assets/screenshot.png`.
+![AIUM panel indicator and provider popover](assets/screenshot.png)
 
 ## Installation
 
-### CLI
+### Quick install (CLI + timer + extension)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/jonykalavera/aium/main/install.sh | bash
+```
+
+Pin a specific release with `AIUM_VERSION`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/jonykalavera/aium/main/install.sh | AIUM_VERSION=v0.1.1 bash
+```
+
+The script installs the `aium` CLI from PyPI (`aium-cli`), the systemd user
+timer (polls every 60 min) and the GNOME Shell extension. Requires `curl`,
+`unzip`, and one of `uv` / `pipx` / `pip`. Restart GNOME Shell (logout/login)
+to load the extension.
+
+### CLI only
 
 ```bash
 pipx install aium-cli     # or: uv tool install aium-cli
@@ -37,15 +54,18 @@ aium init
 The CLI reads its config from `~/.config/aium/` (YAML) and keeps history in
 `~/.local/share/aium/` (SQLite).
 
-### GNOME Shell extension
+### Extension only
+
+Grab `aium@jonykalavera.zip` from the [releases](../../releases) page, extract it
+to `~/.local/share/gnome-shell/extensions/aium@jonykalavera/`, compile the
+schema (`glib-compile-schemas schemas`) and enable it with
+`gnome-extensions enable aium@jonykalavera`.
+
+### From source (development)
 
 ```bash
-./install.sh             # installs the CLI (uv tool), the systemd timer and the extension
+./local-install.sh         # installs the CLI (uv tool), the systemd timer and the extension from this repo
 ```
-
-or grab the extension zip from the [releases](../../releases) page, extract it to
-`~/.local/share/gnome-shell/extensions/aium@jonykalavera/`, then enable it with
-`gnome-extensions enable aium@jonykalavera` (a logout/login may be required).
 
 ## Quick start
 
