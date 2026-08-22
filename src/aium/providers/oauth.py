@@ -65,13 +65,21 @@ async def refresh_token(
     return data
 
 
-def jwt_exp(id_token: str) -> float | None:
-    """Return the `exp` claim (epoch seconds) of a JWT, or None."""
+def jwt_payload(token: str) -> dict | None:
+    """Decode a JWT payload without verifying the signature, or None."""
     try:
-        payload = id_token.split(".")[1]
+        payload = token.split(".")[1]
         payload += "=" * (-len(payload) % 4)
         data = json.loads(base64.urlsafe_b64decode(payload))
-        exp = data.get("exp")
-        return float(exp) if isinstance(exp, (int, float)) else None
     except IndexError, ValueError, TypeError, json.JSONDecodeError:
         return None
+    return data if isinstance(data, dict) else None
+
+
+def jwt_exp(id_token: str) -> float | None:
+    """Return the `exp` claim (epoch seconds) of a JWT, or None."""
+    data = jwt_payload(id_token)
+    if data is None:
+        return None
+    exp = data.get("exp")
+    return float(exp) if isinstance(exp, (int, float)) else None

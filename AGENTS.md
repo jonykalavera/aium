@@ -66,6 +66,12 @@ for tests: `AIUM_CODEX_AUTH` (`~/.codex/auth.json`), `AIUM_ANTHROPIC_CREDS`
 Token refresh writes back atomically (`providers/oauth.py`); endpoints may
 break without notice.
 
+**Cursor** (`uses_api_key=False`) reads the IDE session from
+`~/.config/Cursor/User/globalStorage/state.vscdb` (`cursorAuth/accessToken`),
+falling back to `~/.config/cursor/auth.json`; tests override with
+`AIUM_CURSOR_AUTH` / `AIUM_CURSOR_DB`. The session is not refreshed — sign in
+to the IDE again if it expires.
+
 ## Storage / ledger
 
 - SQLite at `~/.local/share/aium/history.db` (tables `snapshots`,

@@ -8,6 +8,7 @@ from typing import Any
 from ..models import ProviderType
 from .anthropic import Anthropic
 from .base import Provider
+from .cursor import Cursor
 from .deepseek import DeepSeek
 from .google import Google
 from .kimi import Kimi
@@ -92,6 +93,18 @@ BALANCE_PROVIDERS: dict[str, ProviderSpec] = {
         cls=Google,
         uses_api_key=False,
         usage_url="https://aistudio.google.com/",
+    ),
+    "cursor": ProviderSpec(
+        kind="cursor",
+        name="Cursor",
+        currency="USD",
+        pricing_url="https://cursor.com/docs/models-and-pricing",
+        provider_type=ProviderType.balance,
+        cls=Cursor,
+        uses_api_key=False,
+        usage_url="https://cursor.com/dashboard/usage",
+        balance_kind="budget",
+        balance_label="budget",
     ),
     "zai": ProviderSpec(
         kind="zai",
