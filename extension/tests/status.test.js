@@ -1,4 +1,4 @@
-import {isRelevant, panelLabel, providerDetail, severityColor, tooltipText} from '../lib/status.js';
+import {healthColor, isRelevant, panelLabel, providerDetail, severityColor, tooltipText} from '../lib/status.js';
 import {assertClose, assertDeepEqual, assertEqual, describe, it} from './_assert.js';
 
 const balanceProvider = {
@@ -20,7 +20,7 @@ describe('providerDetail', () => {
     });
     it('peak marker', () => {
         assertEqual(providerDetail({...balanceProvider, peak: true}), '10.00 USD · 2.50 USD spent · peak');
-        assertEqual(providerDetail({...balanceProvider, peak: false}), '10.00 USD · 2.50 USD spent · off-peak');
+        assertEqual(providerDetail({...balanceProvider, peak: false}), '10.00 USD · 2.50 USD spent · discounted');
     });
     it('plan', () => {
         assertEqual(
@@ -132,5 +132,28 @@ describe('panelLabel', () => {
     it('hide with none', () => {
         const l = panelLabel(totals, 'spend_today', 'none');
         assertEqual(l.bottom, '');
+    });
+});
+
+describe('healthColor', () => {
+    it('quota thresholds', () => {
+        const quota = pct => ({...balanceProvider, quota: [{label: '5h', utilization_pct: pct}]});
+        assertDeepEqual(healthColor(quota(95)), [1.0, 0.3, 0.3]);
+        assertDeepEqual(healthColor(quota(80)), [1.0, 0.7, 0.2]);
+        assertDeepEqual(healthColor(quota(50)), [0.3, 0.85, 0.5]);
+    });
+    it('prepaid balance warn/critical', () => {
+        const bal = available => ({
+            ...balanceProvider,
+            balance_kind: 'prepaid',
+            balance: {available, currency: 'USD'},
+        });
+        assertDeepEqual(healthColor(bal(0.5), 10, 1), [1.0, 0.3, 0.3]);   // critical
+        assertDeepEqual(healthColor(bal(5), 10, 1), [1.0, 0.7, 0.2]);     // warn
+        assertDeepEqual(healthColor(bal(25), 10, 1), [0.3, 0.85, 0.5]);    // good
+    });
+    it('no signal returns null', () => {
+        assertEqual(healthColor({...balanceProvider, balance: null, balance_kind: 'prepaid'}), null);
+        assertEqual(healthColor({type: 'manual', balance: null}), null);
     });
 });

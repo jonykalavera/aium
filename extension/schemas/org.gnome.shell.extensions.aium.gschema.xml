@@ -27,5 +27,15 @@
       <summary>Show summary label</summary>
       <description>Whether to show the spend/balance text next to the panel icon.</description>
     </key>
+    <key name="balance-warn" type="d">
+      <default>10.0</default>
+      <summary>Low balance warning threshold</summary>
+      <description>Providers with a prepaid balance below this amount show an amber health dot.</description>
+    </key>
+    <key name="balance-critical" type="d">
+      <default>1.0</default>
+      <summary>Critical balance threshold</summary>
+      <description>Providers with a prepaid balance below this amount show a red health dot.</description>
+    </key>
   </schema>
 </schemalist>

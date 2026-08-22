@@ -11,7 +11,7 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import {money} from './lib/format.js';
-import {isRelevant, panelLabel, providerDetail, severityColor, tooltipText} from './lib/status.js';
+import {healthColor, isRelevant, panelLabel, providerDetail, severityColor, tooltipText} from './lib/status.js';
 
 const STATUS_PATH = GLib.build_filenamev([
     GLib.get_user_cache_dir(), 'aium', 'status.json',
@@ -276,10 +276,15 @@ export default class AiumExtension extends Extension {
 
         const box = new St.BoxLayout({ vertical: true, style_class: 'aium-provider' });
         const row = new St.BoxLayout();
-        if (provider.peak != null) {
+        const health = healthColor(
+            provider,
+            this._settings.get_double('balance-warn'),
+            this._settings.get_double('balance-critical'),
+        );
+        if (health) {
             const dot = new St.Widget({
-                style_class: 'aium-peak-dot',
-                style: `background-color: ${provider.peak ? '#e53935' : '#43a047'};`,
+                style_class: 'aium-health-dot',
+                style: `background-color: rgb(${Math.round(health[0] * 255)}, ${Math.round(health[1] * 255)}, ${Math.round(health[2] * 255)});`,
             });
             dot.y_align = Clutter.ActorAlign.CENTER;
             row.add_child(dot);

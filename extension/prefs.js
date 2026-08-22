@@ -59,6 +59,26 @@ export default class AiumPreferences extends ExtensionPreferences {
         );
         group.add(showLabel);
 
+        const balanceSpin = (title, subtitle, key) => {
+            const row = new Adw.SpinRow({
+                title,
+                subtitle,
+                adjustment: new Gtk.Adjustment({
+                    lower: 0,
+                    upper: 100000,
+                    step_increment: 1,
+                    page_increment: 5,
+                }),
+            });
+            row.value = settings.get_double(key);
+            row.connect('notify::value', () => {
+                settings.set_double(key, row.value);
+            });
+            return row;
+        };
+        group.add(balanceSpin('Low balance warning', 'Prepaid balance below this shows an amber dot', 'balance-warn'));
+        group.add(balanceSpin('Critical balance', 'Prepaid balance below this shows a red dot', 'balance-critical'));
+
         const spin = new Adw.SpinRow({
             title: 'Refresh interval',
             subtitle: 'Seconds between status cache reads',

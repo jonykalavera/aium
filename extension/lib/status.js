@@ -43,7 +43,7 @@ export function providerDetail(provider) {
         detail += ` · today ${moneyShort(provider.spend_today, provider.currency)}`;
 
     if (provider.peak != null)
-        detail += provider.peak ? ' · peak' : ' · off-peak';
+        detail += provider.peak ? ' · peak' : ' · discounted';
 
     if (provider.plan)
         detail += ` · ${provider.plan}`;
@@ -55,6 +55,32 @@ export function providerDetail(provider) {
         detail += ` · ${windows}`;
     }
     return detail;
+}
+
+const GOOD = [0.3, 0.85, 0.5];
+const WARN = [1.0, 0.7, 0.2];
+const CRITICAL = [1.0, 0.3, 0.3];
+
+export function healthColor(provider, warnThreshold = 10, criticalThreshold = 1) {
+    // Quota health wins (about to hit a rate limit).
+    if (provider.quota?.length) {
+        const peak = Math.max(...provider.quota.map(w => w.utilization_pct));
+        if (peak >= 90)
+            return CRITICAL;
+        if (peak >= 70)
+            return WARN;
+        return GOOD;
+    }
+    // Prepaid balance health.
+    if (provider.balance && provider.balance_kind === 'prepaid') {
+        const available = provider.balance.available;
+        if (available < criticalThreshold)
+            return CRITICAL;
+        if (available < warnThreshold)
+            return WARN;
+        return GOOD;
+    }
+    return null;
 }
 
 export function severityColor(pct) {
