@@ -46,6 +46,10 @@ Create `src/aium/providers/<name>.py` implementing a class in
 kind, name, pricing/usage URLs, `peak_window`, `uses_api_key`). `service.py`
 falls back to the spec's `usage_url`/`peak_window` when the config omits them.
 
+Set the spec's `balance_kind`/`balance_label` for what `fetch_balance()`
+returns: `prepaid` (`balance`/`credits`) or `budget`. Only `prepaid` balances
+are summed into `Totals.balance`.
+
 Provider methods: `fetch_balance()`, `fetch_usage()`, `fetch_quota()`,
 `fetch_plan()` (all may be `None`/`[]`). Set `usage_cumulative = True` when
 `fetch_usage()` returns an all-time counter (monthly spend is then derived from

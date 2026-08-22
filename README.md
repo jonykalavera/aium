@@ -78,15 +78,27 @@ aium status
 
 ## Providers
 
-| Kind | Auth | What it reports |
-|---|---|---|
-| `deepseek` | API key | balance (prepaid), peak/off-peak tariff |
-| `kimi` | API key | balance (prepaid) |
-| `openrouter` | API key | balance + monthly usage |
-| `openai` | OAuth (Codex) | rate-limit quota windows |
-| `anthropic` | OAuth (Claude Code) | spend vs monthly limit + quota windows |
-| `google` | OAuth (Antigravity) | plan/tier + quota (paid tiers) |
-| `manual` | — | fixed subscription cost + renewal |
+| Kind | Auth | What it reports | Balance means |
+|---|---|---|---|
+| `deepseek` | API key | balance, peak/off-peak tariff | prepaid credit (`balance`) |
+| `kimi` | API key | balance | prepaid credit (`balance`) |
+| `openrouter` | API key | balance + monthly usage | prepaid credit (`credits`) |
+| `openai` | OAuth (Codex) | rate-limit quota windows | none |
+| `anthropic` | OAuth (Claude Code) | spend vs monthly limit + quota windows | monthly budget remaining (`budget`) |
+| `google` | OAuth (Antigravity) | plan/tier + quota (paid tiers) | none |
+| `zai` | API key | quota windows + plan | none |
+| `manual` | — | fixed subscription cost + renewal | — |
+
+**Balance semantics.** "Balance" means different things per provider:
+- **Prepaid credit** (`balance`/`credits`) — real money on the account. OpenRouter
+  reports it as `credits` because BYOK/free usage is billed elsewhere and does
+  not decrement it.
+- **Budget** (`budget`) — Anthropic's remaining monthly spending limit, not
+  money you hold.
+- **None** — the provider exposes no balance (quota/plan only).
+
+The aggregated **Prepaid balance** total sums only prepaid-credit balances;
+budget and quota-only providers are shown per-row but excluded from the total.
 
 OAuth providers reuse the CLI's own credential files (`~/.codex/auth.json`,
 `~/.claude/.credentials.json`, `~/.gemini/oauth_creds.json`) — no API key
