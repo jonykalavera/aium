@@ -57,9 +57,9 @@ async def _collect(
             days_until_renewal=sub.days_until_renewal(),
         )
 
-    provider = build_provider(cfg)
     secret = secrets.get(cfg.id)
     try:
+        provider = build_provider(cfg)
         if isinstance(provider, BalanceProvider):
             balance = await provider.fetch_balance(http, secret)
             usage = await provider.fetch_usage(http, secret)

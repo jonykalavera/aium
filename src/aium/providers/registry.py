@@ -13,6 +13,7 @@ from .google import Google
 from .kimi import Kimi
 from .openai import OpenAI
 from .openrouter import OpenRouter
+from .zai import ZAI
 
 
 @dataclass(frozen=True)
@@ -86,6 +87,15 @@ BALANCE_PROVIDERS: dict[str, ProviderSpec] = {
         cls=Google,
         uses_api_key=False,
         usage_url="https://aistudio.google.com/",
+    ),
+    "zai": ProviderSpec(
+        kind="zai",
+        name="Z.AI (GLM)",
+        currency="USD",
+        pricing_url="https://z.ai/",
+        provider_type=ProviderType.balance,
+        cls=ZAI,
+        usage_url="https://z.ai/",
     ),
 }
 

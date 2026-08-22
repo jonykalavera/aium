@@ -7,6 +7,7 @@ from aium.providers.base import ProviderError
 from aium.providers.deepseek import DeepSeek
 from aium.providers.kimi import Kimi
 from aium.providers.openrouter import OpenRouter
+from aium.providers.zai import ZAI
 
 
 @pytest.fixture
@@ -95,3 +96,46 @@ async def test_openrouter_monthly_usage():
         usage = await provider.fetch_usage(http, "sk-test")
     assert usage.total == 6.29
     assert usage.currency == "USD"
+
+
+@respx.mock
+async def test_zai_quota_and_plan():
+    cfg = BalanceProviderConfig(id="glm", name="Z.AI", type=ProviderType.balance, kind="zai")
+    respx.get("https://api.z.ai/api/monitor/usage/quota/limit").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "success": True,
+                "data": {
+                    "level": "pro",
+                    "limits": [
+                        {"type": "TOKENS_LIMIT", "percentage": 62, "nextResetTime": 1787372813339},
+                        {"type": "TOKENS_LIMIT", "percentage": 30, "nextResetTime": 1787372813339},
+                        {"type": "TIME_LIMIT", "percentage": 10, "nextResetTime": 1787372813339},
+                    ],
+                },
+            },
+        )
+    )
+    provider = ZAI(cfg)
+    async with httpx.AsyncClient() as http:
+        quota = await provider.fetch_quota(http, "sk")
+        plan = await provider.fetch_plan(http, "sk")
+        balance = await provider.fetch_balance(http, "sk")
+    assert balance is None
+    assert plan == "GLM Coding pro"
+    assert [w.label for w in quota] == ["5h", "7d", "30d"]
+    assert quota[0].utilization_pct == 62
+
+
+@respx.mock
+async def test_zai_no_coding_plan():
+    cfg = BalanceProviderConfig(id="glm", name="Z.AI", type=ProviderType.balance, kind="zai")
+    respx.get("https://api.z.ai/api/monitor/usage/quota/limit").mock(
+        return_value=httpx.Response(200, json={"code": 500, "msg": "no plan", "success": False})
+    )
+    provider = ZAI(cfg)
+    async with httpx.AsyncClient() as http:
+        with pytest.raises(ProviderError, match="Z.AI"):
+            await provider.fetch_quota(http, "sk")
