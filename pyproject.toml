@@ -1,6 +1,6 @@
 [project]
 name = "aium-cli"
-version = "0.1.1"
+version = "0.1.2"
 description = "AI usage monitor: CLI core + GNOME Shell extension"
 readme = "README.md"
 license = { text = "MIT" }

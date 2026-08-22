@@ -9,8 +9,9 @@ AI usage monitor: a Python CLI core + a GNOME Shell extension (passive outlet).
   `~/.cache/aium/status.json` and renders it. **No provider CRUD, no secrets** —
   everything is done via the CLI (`aium providers|keys ...`).
 - The JSON schema in `src/aium/models.py` (`StatusFile`/`ProviderStatus`) is the
-  contract between the two. Changing a field means updating both `service.py`
-  and `extension/extension.js`.
+  contract between the two. Changing a field means updating `service.py` AND the
+  display code: pure logic in `extension/lib/status.js` (unit-tested), widgets
+  in `extension/extension.js`.
 
 ## Commands
 
@@ -19,10 +20,12 @@ uv sync --all-groups --locked   # install deps
 make uv.check                   # ruff lint + ty typecheck + ruff format --check
 make uv.test                    # pytest --cov aium --blockage (network blocked)
 make uv.typecheck / make uv.lint / make uv.format
+make ext-test                   # GJS unit tests for extension/lib (needs gjs)
 ```
 
 Recipes use bare commands; the `uv.%` wrapper (`make uv.<target>`) runs them in
-the uv venv. Run `make uv.check` before considering work done.
+the uv venv. Run `make uv.check` and `make ext-test` before considering work
+done (the extension's pure logic is tested separately with `gjs`).
 
 The systemd timer (`systemctl --user list-timers aium-poll.timer`) runs the
 **installed** binary at `~/.local/bin/aium`, not `uv run aium` — after core
@@ -57,9 +60,9 @@ Provider methods: `fetch_balance()`, `fetch_usage()`, `fetch_quota()`,
 `fetch_usage()` returns an all-time counter (monthly spend is then derived from
 its delta).
 
-**API-key providers** (deepseek, kimi, openrouter) read secrets from the system
-keyring (service `aium`) — set with `aium keys set <id>` (validates the id
-exists to avoid typo strays; `aium keys list` shows orphans).
+**API-key providers** (deepseek, kimi, openrouter, zai) read secrets from the
+system keyring (service `aium`) — set with `aium keys set <id>` (validates the
+id exists to avoid typo strays; `aium keys list` shows orphans).
 
 **OAuth providers** (openai, anthropic, google) read the CLI's credential files
 from disk, not keyring, and hit private/undocumented endpoints. Env override
@@ -74,9 +77,19 @@ break without notice.
   `quota_history`, `usage_history`). Always use the `_conn` context manager in
   `storage.py` (it `commit()`s and `close()`s — plain `sqlite3.connect` with
   `with` leaks connections).
-- `ledger.py` derives monthly spend from balance deltas (top-up aware),
-  cumulative-usage deltas, and `peak_window` (UTC "HH:MM-HH:MM", may wrap
-  midnight). DeepSeek defaults to peak `00:30-16:30` (off-peak 16:30-00:30).
+- `ledger.py` derives spend from balance deltas (top-up aware) and
+  cumulative-usage deltas, for both the month and the **local** day:
+  `period_spend`/`period_usage_spend` take `(snapshots, start, end)` bounds,
+  `local_day_bounds()` is the local midnight, and `Totals.spend_today` sums it.
+- `peak_window` (UTC "HH:MM-HH:MM", may wrap midnight) marks high-tariff hours;
+  DeepSeek defaults to peak `00:30-16:30` (off-peak 16:30-00:30).
+
+## Releasing
+
+Bump `version` in `pyproject.toml`, commit/push, then `git tag v<version>` and
+push the tag. CI (`release.yml`) checks the tag matches, builds, publishes the
+`aium-cli` wheel to PyPI (trusted publisher) and creates a GitHub Release with
+`aium@jonykalavera.zip` (the extension, tests excluded) + wheel + sdist.
 
 ## GNOME extension gotchas (hard-won)
 
@@ -101,3 +114,7 @@ break without notice.
   `make uv.test`). Fixtures: `isolated_home` (points XDG dirs at tmp),
   `fake_secrets` (in-memory keyring). OAuth provider tests set the `AIUM_*_CREDS`
   env vars to temp credential files.
+- Extension: `make ext-test` runs `gjs -m extension/tests/run.js`, which
+  discovers `*.test.js` and tests the pure modules in `extension/lib/` (no
+  `gi://` imports — only what's in `status.js`/`format.js`). Widgets in
+  `extension.js` are not unit-tested.
