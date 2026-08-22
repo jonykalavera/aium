@@ -29,6 +29,8 @@ class _BaseKwargs(TypedDict, total=False):
     currency: str
     usage_url: str | None
     peak: bool | None
+    balance_kind: str | None
+    balance_label: str | None
 
 
 async def _collect(
@@ -46,6 +48,8 @@ async def _collect(
         "currency": cfg.currency,
         "usage_url": cfg.usage_url or (spec.usage_url if spec and spec.usage_url else None),
         "peak": peak,
+        "balance_kind": spec.balance_kind if spec else None,
+        "balance_label": spec.balance_label if spec else None,
     }
 
     if cfg.type == ProviderType.manual:
@@ -121,7 +125,12 @@ async def _collect(
 
 def _aggregate(statuses: list[ProviderStatus], base_currency: str) -> Totals:
     spend = round(sum(s.spend_this_month or 0.0 for s in statuses), 2)
-    balance = round(sum(s.balance.available for s in statuses if s.balance), 2)
+    # Only prepaid credit balances are summed into the total; budget-style
+    # balances (e.g. Anthropic's remaining monthly limit) are shown per-provider.
+    balance = round(
+        sum(s.balance.available for s in statuses if s.balance and s.balance_kind == "prepaid"),
+        2,
+    )
     return Totals(spend_this_month=spend, balance=balance, currency=base_currency)
 
 

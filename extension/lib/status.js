@@ -12,7 +12,9 @@ export function providerDetail(provider) {
         return `${money(sub.cost, sub.currency)}/${sub.cycle}${renewal}`;
     }
     const balance = provider.balance
-        ? money(provider.balance.available, provider.balance.currency)
+        ? (provider.balance_label && provider.balance_label !== 'balance'
+            ? `${provider.balance_label}: ${money(provider.balance.available, provider.balance.currency)}`
+            : money(provider.balance.available, provider.balance.currency))
         : '—';
     const spent = provider.spend_this_month != null
         ? ` · ${money(provider.spend_this_month, provider.currency)} spent`

@@ -7,11 +7,14 @@ from typer.testing import CliRunner
 from aium.cli import app
 from aium.config import load_providers, save_providers
 from aium.models import (
+    Balance,
     BalanceProviderConfig,
     Cycle,
     ManualProviderConfig,
+    ProviderStatus,
     ProviderType,
 )
+from aium.service import _aggregate
 
 runner = CliRunner()
 
@@ -196,3 +199,27 @@ def test_keys_list_marks_orphans(fake_secrets):
     assert result.exit_code == 0
     assert "deepseek" in result.output
     assert "orphan" in result.output
+
+
+def test_aggregate_only_prepaid_balance():
+    prepaid = ProviderStatus(
+        id="ds",
+        name="DeepSeek",
+        type=ProviderType.balance,
+        currency="USD",
+        balance=Balance(available=10),
+        balance_kind="prepaid",
+        spend_this_month=2,
+    )
+    budget = ProviderStatus(
+        id="an",
+        name="Anthropic",
+        type=ProviderType.balance,
+        currency="USD",
+        balance=Balance(available=20),
+        balance_kind="budget",
+        spend_this_month=0,
+    )
+    totals = _aggregate([prepaid, budget], "USD")
+    assert totals.balance == 10.0
+    assert totals.spend_this_month == 2.0

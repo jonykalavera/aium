@@ -59,6 +59,18 @@ describe('providerDetail', () => {
             '—',
         );
     });
+    it('balance labelled credits (OpenRouter)', () => {
+        assertEqual(
+            providerDetail({...balanceProvider, balance_label: 'credits'}),
+            'credits: 10.00 USD · 2.50 USD spent',
+        );
+    });
+    it('balance labelled budget (Anthropic)', () => {
+        assertEqual(
+            providerDetail({...balanceProvider, balance_label: 'budget'}),
+            'budget: 10.00 USD · 2.50 USD spent',
+        );
+    });
 });
 
 describe('severityColor', () => {

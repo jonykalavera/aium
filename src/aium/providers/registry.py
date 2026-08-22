@@ -27,6 +27,8 @@ class ProviderSpec:
     uses_api_key: bool = True
     usage_url: str = ""
     peak_window: str | None = None
+    balance_kind: str = "prepaid"
+    balance_label: str = "balance"
 
 
 BALANCE_PROVIDERS: dict[str, ProviderSpec] = {
@@ -68,6 +70,8 @@ BALANCE_PROVIDERS: dict[str, ProviderSpec] = {
         cls=Anthropic,
         uses_api_key=False,
         usage_url="https://platform.claude.com/usage",
+        balance_kind="budget",
+        balance_label="budget",
     ),
     "openrouter": ProviderSpec(
         kind="openrouter",
@@ -77,6 +81,7 @@ BALANCE_PROVIDERS: dict[str, ProviderSpec] = {
         provider_type=ProviderType.balance,
         cls=OpenRouter,
         usage_url="https://openrouter.ai/activity",
+        balance_label="credits",
     ),
     "google": ProviderSpec(
         kind="google",

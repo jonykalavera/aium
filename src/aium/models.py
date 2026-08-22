@@ -84,6 +84,8 @@ class ProviderStatus(BaseModel):
     ok: bool = True
     error: str | None = None
     balance: Balance | None = None
+    balance_kind: str | None = None
+    balance_label: str | None = None
     spend_this_month: float | None = None
     usage: Usage | None = None
     quota: list[QuotaWindow] = []

@@ -254,7 +254,7 @@ def _print_status(status: StatusFile) -> None:
     t = status.totals
     console.print(
         f"Monthly spend: [bold]{t.spend_this_month} {t.currency}[/bold]  |  "
-        f"Balance: [bold]{t.balance} {t.currency}[/bold]  |  "
+        f"Prepaid balance: [bold]{t.balance} {t.currency}[/bold]  |  "
         f"Updated: {status.generated_at.isoformat()}"
     )
     table = Table("provider", "type", "balance", "spend/mo", "tariff", "status")
