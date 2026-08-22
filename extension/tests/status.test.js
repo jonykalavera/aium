@@ -18,8 +18,8 @@ describe('providerDetail', () => {
             '10.00 USD · 2.50 USD spent',
         );
     });
-    it('peak marker', () => {
-        assertEqual(providerDetail({...balanceProvider, peak: true}), '10.00 USD · 2.50 USD spent · peak');
+    it('offer marker only on discounted', () => {
+        assertEqual(providerDetail({...balanceProvider, peak: true}), '10.00 USD · 2.50 USD spent');
         assertEqual(providerDetail({...balanceProvider, peak: false}), '10.00 USD · 2.50 USD spent · 🔥 offer');
     });
     it('plan', () => {
@@ -90,6 +90,22 @@ describe('tooltipText', () => {
     });
     it('no data', () => {
         assertEqual(tooltipText(null), 'No data');
+    });
+    it('offer legend when any provider discounted', () => {
+        const status = {
+            totals: {spend_this_month: 1.5, balance: 20, currency: 'USD'},
+            providers: [{peak: false}],
+        };
+        assertEqual(
+            tooltipText(status),
+            'Spent this month: 1.50 USD\nBalance: 20.00 USD\n🔥 = discounted (offer) rate now',
+        );
+    });
+    it('no legend without discounted provider', () => {
+        assertEqual(
+            tooltipText({totals: {spend_this_month: 1.5, balance: 20, currency: 'USD'}, providers: [{peak: true}]}),
+            'Spent this month: 1.50 USD\nBalance: 20.00 USD',
+        );
     });
 });
 

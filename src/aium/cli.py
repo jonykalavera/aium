@@ -263,9 +263,7 @@ def _print_status(status: StatusFile) -> None:
         bal = f"{p.balance.available:.4f}" if p.balance else "-"
         spend = f"{p.spend_this_month:.2f}" if p.spend_this_month is not None else "-"
         tariff = "-"
-        if p.peak is True:
-            tariff = "[red]peak[/red]"
-        elif p.peak is False:
+        if p.peak is False:
             tariff = "[green]🔥 offer[/green]"
         state = "[green]ok[/green]" if p.ok else f"[red]{p.error}[/red]"
         table.add_row(p.id, p.type.value, bal, spend, tariff, state)

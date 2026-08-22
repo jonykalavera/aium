@@ -42,8 +42,8 @@ export function providerDetail(provider) {
     if (provider.spend_today != null && provider.spend_today > 0)
         detail += ` · today ${moneyShort(provider.spend_today, provider.currency)}`;
 
-    if (provider.peak != null)
-        detail += provider.peak ? ' · peak' : ' · 🔥 offer';
+    if (provider.peak === false)
+        detail += ' · 🔥 offer';
 
     if (provider.plan)
         detail += ` · ${provider.plan}`;
@@ -95,10 +95,13 @@ export function tooltipText(status) {
     if (!status)
         return 'No data';
     const totals = status.totals ?? {};
-    return [
+    const lines = [
         `Spent this month: ${money(totals.spend_this_month, totals.currency)}`,
         `Balance: ${money(totals.balance, totals.currency)}`,
-    ].join('\n');
+    ];
+    if ((status.providers ?? []).some(p => p.peak === false))
+        lines.push('🔥 = discounted (offer) rate now');
+    return lines.join('\n');
 }
 
 export function isRelevant(provider) {
