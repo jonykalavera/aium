@@ -229,3 +229,6 @@ def test_aggregate_only_prepaid_balance():
     assert totals.balance == 10.0
     assert totals.spend_this_month == 2.0
     assert totals.spend_today == 0.5
+
+    totals = _aggregate([prepaid, budget], "USD", spend_daily=[0.0, 0.5, 1.0])
+    assert totals.spend_daily == [0.0, 0.5, 1.0]

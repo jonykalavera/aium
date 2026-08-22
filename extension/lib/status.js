@@ -43,7 +43,7 @@ export function providerDetail(provider) {
         detail += ` · today ${moneyShort(provider.spend_today, provider.currency)}`;
 
     if (provider.peak === false)
-        detail += ' · 🔥 offer';
+        detail += ' · 🔥 discounted';
 
     if (provider.plan)
         detail += ` · ${provider.plan}`;
@@ -95,13 +95,35 @@ export function tooltipText(status) {
     if (!status)
         return 'No data';
     const totals = status.totals ?? {};
-    const lines = [
+    return [
         `Spent this month: ${money(totals.spend_this_month, totals.currency)}`,
+        `Spent today: ${money(totals.spend_today, totals.currency)}`,
         `Balance: ${money(totals.balance, totals.currency)}`,
-    ];
-    if ((status.providers ?? []).some(p => p.peak === false))
-        lines.push('🔥 = discounted (offer) rate now');
-    return lines.join('\n');
+    ].join('\n');
+}
+
+export function statsSummary(totals) {
+    const daily = totals?.spend_daily ?? [];
+    const avgDay = daily.length
+        ? daily.reduce((a, b) => a + b, 0) / daily.length
+        : 0;
+    return {
+        month: totals?.spend_this_month ?? 0,
+        today: totals?.spend_today ?? 0,
+        balance: totals?.balance ?? 0,
+        avgDay,
+        maxDay: daily.length ? Math.max(...daily) : 0,
+        minDay: daily.length ? Math.min(...daily) : 0,
+    };
+}
+
+export function summaryText(totals) {
+    const s = statsSummary(totals);
+    const currency = totals?.currency;
+    return (
+        `This month ${moneyShort(s.month, currency)} · Today ${moneyShort(s.today, currency)} · Balance ${moneyShort(s.balance, currency)}\n` +
+        `Avg/day ${moneyShort(s.avgDay, currency)} · Max ${moneyShort(s.maxDay, currency)} · Min ${moneyShort(s.minDay, currency)}`
+    );
 }
 
 export function isRelevant(provider) {

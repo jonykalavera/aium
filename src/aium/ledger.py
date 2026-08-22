@@ -27,6 +27,19 @@ def local_day_bounds(now: datetime | None = None) -> tuple[datetime, datetime]:
     return start, end
 
 
+def local_month_days(now: datetime | None = None) -> list[tuple[datetime, datetime]]:
+    """Bounds for each local day of the current month up to today, inclusive."""
+    now = now or datetime.now().astimezone()
+    start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    days: list[tuple[datetime, datetime]] = []
+    day = start
+    while day <= today:
+        days.append((day, day + timedelta(days=1)))
+        day += timedelta(days=1)
+    return days
+
+
 def period_spend(
     snapshots: list[tuple[datetime, float]],
     start: datetime,

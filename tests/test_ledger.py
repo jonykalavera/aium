@@ -1,10 +1,11 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
 from aium.ledger import (
     in_utc_window,
     local_day_bounds,
+    local_month_days,
     month_bounds,
     monthly_spend,
     period_spend,
@@ -18,6 +19,15 @@ def _ts(day: int) -> datetime:
 
 def test_no_snapshots():
     assert monthly_spend([]) == 0.0
+
+
+def test_local_month_days_bounds():
+    now = _ts(6)
+    days = local_month_days(now)
+    assert len(days) == 6
+    assert days[0][0].day == 1
+    assert days[-1][0].day == 6
+    assert all((e - s) == timedelta(days=1) for s, e in days)
 
 
 def test_simple_spend():

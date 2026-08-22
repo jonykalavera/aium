@@ -104,6 +104,9 @@ class Totals(BaseModel):
     spend_today: float = 0.0
     balance: float = 0.0
     currency: str = "USD"
+    # Spend per local day of the current month (oldest to newest, today last),
+    # summed across providers. Zeros for days with no data.
+    spend_daily: list[float] = []
 
 
 class StatusFile(BaseModel):

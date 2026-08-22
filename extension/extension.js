@@ -10,8 +10,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
-import {money} from './lib/format.js';
-import {healthColor, isRelevant, panelLabel, providerDetail, severityColor, tooltipText} from './lib/status.js';
+import {healthColor, isRelevant, panelLabel, providerDetail, severityColor, summaryText, tooltipText} from './lib/status.js';
 
 const STATUS_PATH = GLib.build_filenamev([
     GLib.get_user_cache_dir(), 'aium', 'status.json',
@@ -238,10 +237,7 @@ export default class AiumExtension extends Extension {
         if (!status) {
             summaryLabel.text = 'No data yet. Run "aium poll".';
         } else {
-            const totals = status.totals ?? {};
-            summaryLabel.text =
-                `Spent this month: ${money(totals.spend_this_month, totals.currency)}\n` +
-                `Balance: ${money(totals.balance, totals.currency)}`;
+            summaryLabel.text = summaryText(status.totals ?? {});
         }
         summary.add_child(summaryLabel);
         this._button.menu.addMenuItem(summary);

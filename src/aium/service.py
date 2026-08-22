@@ -137,7 +137,11 @@ async def _collect(
         return ProviderStatus(**base, ok=False, error=str(exc))
 
 
-def _aggregate(statuses: list[ProviderStatus], base_currency: str) -> Totals:
+def _aggregate(
+    statuses: list[ProviderStatus],
+    base_currency: str,
+    spend_daily: list[float] | None = None,
+) -> Totals:
     spend = round(sum(s.spend_this_month or 0.0 for s in statuses), 2)
     spend_today = round(sum(s.spend_today or 0.0 for s in statuses), 2)
     # Only prepaid credit balances are summed into the total; budget-style
@@ -151,7 +155,40 @@ def _aggregate(statuses: list[ProviderStatus], base_currency: str) -> Totals:
         spend_today=spend_today,
         balance=balance,
         currency=base_currency,
+        spend_daily=spend_daily or [],
     )
+
+
+def _provider_daily_spend(
+    cfg: ProviderConfig, bounds: list[tuple[datetime, datetime]]
+) -> list[float]:
+    """Spend per local day from history, mirroring the `_collect` attribution.
+
+    Cumulative/usage providers derive days from `usage_history`; balance-only
+    providers from `snapshots`. Manual subscriptions spread nothing (their flat
+    cost already lands in `spend_this_month`).
+    """
+    if cfg.type == ProviderType.manual:
+        return [0.0] * len(bounds)
+    history = storage.get_usage_history(cfg.id)
+    if history:
+        return [round(ledger.period_usage_spend(history, s, e), 2) for s, e in bounds]
+    snapshots = storage.get_snapshots(cfg.id)
+    if snapshots:
+        return [round(ledger.period_spend(snapshots, s, e), 2) for s, e in bounds]
+    return [0.0] * len(bounds)
+
+
+def _daily_series(
+    providers: list[ProviderConfig], bounds: list[tuple[datetime, datetime]]
+) -> list[float]:
+    daily = [0.0] * len(bounds)
+    for cfg in providers:
+        if not cfg.enabled:
+            continue
+        series = _provider_daily_spend(cfg, bounds)
+        daily = [round(d + v, 2) for d, v in zip(daily, series, strict=True)]
+    return daily
 
 
 async def poll(http: httpx.AsyncClient | None = None) -> StatusFile:
@@ -159,6 +196,7 @@ async def poll(http: httpx.AsyncClient | None = None) -> StatusFile:
     providers = load_providers()
     secrets = SecretsStore()
     day = ledger.local_day_bounds()
+    bounds = ledger.local_month_days()
 
     own_client = http is None
     if http is None:
@@ -170,7 +208,7 @@ async def poll(http: httpx.AsyncClient | None = None) -> StatusFile:
         if own_client:
             await http.aclose()
 
-    totals = _aggregate(statuses, settings.base_currency)
+    totals = _aggregate(statuses, settings.base_currency, _daily_series(providers, bounds))
     status = StatusFile(totals=totals, providers=statuses)
     storage.write_status(status)
     return status

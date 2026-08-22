@@ -1,8 +1,10 @@
 """Tests for history/sparkline storage helpers."""
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from aium import ledger, storage
+from aium.models import BalanceProviderConfig, ManualProviderConfig, ProviderType
+from aium.service import _daily_series, _provider_daily_spend
 
 
 def _ts(day: int) -> datetime:
@@ -56,3 +58,34 @@ def test_usage_monthly_spend(tmp_path):
     storage.record_usage("or", 3.0, ts=_ts(5), db=db)
     storage.record_usage("or", 6.29, ts=_ts(10), db=db)
     assert ledger.usage_monthly_spend(storage.get_usage_history("or", db=db), _ts(10)) == 4.29
+
+
+def _bounds(days: int = 4):
+    start = datetime(2026, 8, 1, 0, 0, tzinfo=UTC)
+    return [(start + timedelta(days=i), start + timedelta(days=i + 1)) for i in range(days)]
+
+
+def test_daily_spend_series_balance_usage_and_manual():
+    storage.init_db()
+    bounds = _bounds()
+
+    storage.record_snapshot("ds", 10.0, "USD", ts=_ts(1))
+    storage.record_snapshot("ds", 9.0, "USD", ts=_ts(2))
+    storage.record_snapshot("ds", 6.0, "USD", ts=_ts(3))
+    storage.record_snapshot("ds", 6.0, "USD", ts=_ts(4))
+    ds = BalanceProviderConfig(id="ds", name="DeepSeek", type=ProviderType.balance, kind="deepseek")
+    assert _provider_daily_spend(ds, bounds) == [0.0, 1.0, 3.0, 0.0]
+
+    storage.record_usage("or", 0.0, ts=_ts(1))
+    storage.record_usage("or", 2.0, ts=_ts(2))
+    storage.record_usage("or", 4.0, ts=_ts(3))
+    storage.record_usage("or", 4.0, ts=_ts(4))
+    or_ = BalanceProviderConfig(
+        id="or", name="OpenRouter", type=ProviderType.balance, kind="openrouter"
+    )
+    assert _provider_daily_spend(or_, bounds) == [0.0, 2.0, 2.0, 0.0]
+
+    manual = ManualProviderConfig(id="m", name="Manual", type=ProviderType.manual, cost=20)
+    assert _provider_daily_spend(manual, bounds) == [0.0, 0.0, 0.0, 0.0]
+
+    assert _daily_series([ds, or_, manual], bounds) == [0.0, 3.0, 5.0, 0.0]

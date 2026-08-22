@@ -264,7 +264,7 @@ def _print_status(status: StatusFile) -> None:
         spend = f"{p.spend_this_month:.2f}" if p.spend_this_month is not None else "-"
         tariff = "-"
         if p.peak is False:
-            tariff = "[green]🔥 offer[/green]"
+            tariff = "[green]🔥 discounted[/green]"
         state = "[green]ok[/green]" if p.ok else f"[red]{p.error}[/red]"
         table.add_row(p.id, p.type.value, bal, spend, tariff, state)
     console.print(table)

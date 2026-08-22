@@ -1,4 +1,4 @@
-import {healthColor, isRelevant, panelLabel, providerDetail, severityColor, tooltipText} from '../lib/status.js';
+import {healthColor, isRelevant, panelLabel, providerDetail, severityColor, statsSummary, summaryText, tooltipText} from '../lib/status.js';
 import {assertClose, assertDeepEqual, assertEqual, describe, it} from './_assert.js';
 
 const balanceProvider = {
@@ -20,7 +20,7 @@ describe('providerDetail', () => {
     });
     it('offer marker only on discounted', () => {
         assertEqual(providerDetail({...balanceProvider, peak: true}), '10.00 USD · 2.50 USD spent');
-        assertEqual(providerDetail({...balanceProvider, peak: false}), '10.00 USD · 2.50 USD spent · 🔥 offer');
+        assertEqual(providerDetail({...balanceProvider, peak: false}), '10.00 USD · 2.50 USD spent · 🔥 discounted');
     });
     it('plan', () => {
         assertEqual(
@@ -84,28 +84,48 @@ describe('severityColor', () => {
 describe('tooltipText', () => {
     it('totals only', () => {
         assertEqual(
-            tooltipText({totals: {spend_this_month: 1.5, balance: 20, currency: 'USD'}}),
-            'Spent this month: 1.50 USD\nBalance: 20.00 USD',
+            tooltipText({totals: {spend_this_month: 1.5, spend_today: 0.25, balance: 20, currency: 'USD'}}),
+            'Spent this month: 1.50 USD\nSpent today: 0.25 USD\nBalance: 20.00 USD',
         );
     });
     it('no data', () => {
         assertEqual(tooltipText(null), 'No data');
     });
-    it('offer legend when any provider discounted', () => {
-        const status = {
-            totals: {spend_this_month: 1.5, balance: 20, currency: 'USD'},
-            providers: [{peak: false}],
+});
+
+describe('summaryText', () => {
+    it('rows with stats from spend_daily', () => {
+        const totals = {
+            spend_this_month: 9,
+            spend_today: 3,
+            balance: 15.73,
+            currency: 'USD',
+            spend_daily: [0, 2, 4, 3],
         };
         assertEqual(
-            tooltipText(status),
-            'Spent this month: 1.50 USD\nBalance: 20.00 USD\n🔥 = discounted (offer) rate now',
+            summaryText(totals),
+            'This month $9.00 · Today $3.00 · Balance $15.73\n' +
+            'Avg/day $2.25 · Max $4.00 · Min $0.00',
         );
     });
-    it('no legend without discounted provider', () => {
+    it('empty totals', () => {
         assertEqual(
-            tooltipText({totals: {spend_this_month: 1.5, balance: 20, currency: 'USD'}, providers: [{peak: true}]}),
-            'Spent this month: 1.50 USD\nBalance: 20.00 USD',
+            summaryText({}),
+            'This month $0.00 · Today $0.00 · Balance $0.00\n' +
+            'Avg/day $0.00 · Max $0.00 · Min $0.00',
         );
+    });
+    it('statsSummary includes zeros', () => {
+        const s = statsSummary({
+            spend_daily: [0, 5, 0],
+            spend_this_month: 5,
+            spend_today: 0,
+            balance: 10,
+            currency: 'USD',
+        });
+        assertEqual(s.avgDay, 1.6666666666666667);
+        assertEqual(s.minDay, 0);
+        assertEqual(s.maxDay, 5);
     });
 });
 
