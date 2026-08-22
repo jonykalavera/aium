@@ -162,7 +162,9 @@ def test_openrouter_usage_uses_usage_monthly(fake_secrets):
     assert runner.invoke(app, ["keys", "set", "openrouter", "--secret", "sk-test"]).exit_code == 0
 
     respx.get("https://openrouter.ai/api/v1/credits").mock(
-        return_value=httpx.Response(200, json={"data": {"total_credits": 10.0}})
+        return_value=httpx.Response(
+            200, json={"data": {"total_credits": 10.0, "total_usage": 3.71}}
+        )
     )
     respx.get("https://openrouter.ai/api/v1/key").mock(
         return_value=httpx.Response(200, json={"data": {"usage_monthly": 2.0}})
@@ -179,6 +181,7 @@ def test_openrouter_usage_uses_usage_monthly(fake_secrets):
     provider = payload["providers"][0]
     assert provider["id"] == "openrouter"
     assert provider["spend_this_month"] == 6.29
+    assert provider["balance"]["available"] == 6.29
     assert provider["sparkline"] == [4.29]
 
 

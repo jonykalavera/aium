@@ -34,8 +34,12 @@ class OpenRouter(BalanceProvider):
         data = resp.json()
 
         body = data.get("data") or {}
+        # OpenRouter's `total_credits` is the amount topped up, not the remaining
+        # balance; subtract all-time usage to get what's actually left.
+        credits = float(body.get("total_credits", 0.0))
+        used = float(body.get("total_usage", 0.0))
         return Balance(
-            available=float(body.get("total_credits", 0.0)),
+            available=max(0.0, round(credits - used, 4)),
             currency="USD",
         )
 

@@ -99,6 +99,23 @@ async def test_openrouter_monthly_usage():
 
 
 @respx.mock
+async def test_openrouter_balance_is_credits_minus_usage():
+    cfg = BalanceProviderConfig(
+        id="openrouter", name="OpenRouter", type=ProviderType.balance, kind="openrouter"
+    )
+    respx.get("https://openrouter.ai/api/v1/credits").mock(
+        return_value=httpx.Response(
+            200, json={"data": {"total_credits": 10.0, "total_usage": 9.9835}}
+        )
+    )
+    provider = OpenRouter(cfg)
+    async with httpx.AsyncClient() as http:
+        balance = await provider.fetch_balance(http, "sk-test")
+    assert balance.available == 0.0165
+    assert balance.currency == "USD"
+
+
+@respx.mock
 async def test_zai_quota_and_plan():
     cfg = BalanceProviderConfig(id="glm", name="Z.AI", type=ProviderType.balance, kind="zai")
     respx.get("https://api.z.ai/api/monitor/usage/quota/limit").mock(
