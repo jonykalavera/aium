@@ -43,7 +43,7 @@ export function providerDetail(provider) {
         detail += ` · today ${moneyShort(provider.spend_today, provider.currency)}`;
 
     if (provider.peak != null)
-        detail += provider.peak ? ' · peak' : ' · discounted';
+        detail += provider.peak ? ' · peak' : ' · 🔥 offer';
 
     if (provider.plan)
         detail += ` · ${provider.plan}`;

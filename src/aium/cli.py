@@ -266,7 +266,7 @@ def _print_status(status: StatusFile) -> None:
         if p.peak is True:
             tariff = "[red]peak[/red]"
         elif p.peak is False:
-            tariff = "[green]off-peak[/green]"
+            tariff = "[green]🔥 offer[/green]"
         state = "[green]ok[/green]" if p.ok else f"[red]{p.error}[/red]"
         table.add_row(p.id, p.type.value, bal, spend, tariff, state)
     console.print(table)

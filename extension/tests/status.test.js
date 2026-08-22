@@ -20,7 +20,7 @@ describe('providerDetail', () => {
     });
     it('peak marker', () => {
         assertEqual(providerDetail({...balanceProvider, peak: true}), '10.00 USD · 2.50 USD spent · peak');
-        assertEqual(providerDetail({...balanceProvider, peak: false}), '10.00 USD · 2.50 USD spent · discounted');
+        assertEqual(providerDetail({...balanceProvider, peak: false}), '10.00 USD · 2.50 USD spent · 🔥 offer');
     });
     it('plan', () => {
         assertEqual(
