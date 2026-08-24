@@ -90,7 +90,10 @@ class ProviderStatus(BaseModel):
     spend_today: float | None = None
     usage: Usage | None = None
     quota: list[QuotaWindow] = []
+    #: Recent spend history (usage/snapshot deltas), newest last.
     sparkline: list[float] | None = None
+    #: Recent quota utilization history (%) for quota providers, newest last.
+    quota_sparkline: list[float] | None = None
     plan: str | None = None
     peak: bool | None = None
     usage_url: str | None = None

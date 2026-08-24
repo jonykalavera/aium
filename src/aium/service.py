@@ -74,6 +74,7 @@ async def _collect(
             plan = await provider.fetch_plan(http, secret)
 
             sparkline: list[float] | None = None
+            quota_sparkline: list[float] | None = None
             spend: float | None = None
             day_start, day_end = day
 
@@ -105,7 +106,7 @@ async def _collect(
             if quota:
                 quota_peak = max(w.utilization_pct for w in quota)
                 storage.record_quota(cfg.id, quota_peak)
-                sparkline = storage.get_quota_history(cfg.id)
+                quota_sparkline = storage.get_quota_history(cfg.id)
 
             return ProviderStatus(
                 **base,
@@ -114,6 +115,7 @@ async def _collect(
                 usage=usage,
                 quota=quota,
                 sparkline=sparkline,
+                quota_sparkline=quota_sparkline,
                 plan=plan,
                 spend_this_month=spend,
                 spend_today=spend_today,

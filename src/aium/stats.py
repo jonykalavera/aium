@@ -113,7 +113,10 @@ def render_frame(
             else:
                 bal = _money(p.balance.available)
         spend = f"{_money(p.spend_this_month)}/mo" if p.spend_this_month is not None else "-"
-        label = f"{bal} · {spend}" if bal else spend
+        parts = [part for part in (bal, spend) if part]
+        if p.quota:
+            parts.append(" · ".join(f"{w.label} {w.utilization_pct}%" for w in p.quota))
+        label = " · ".join(parts)
 
         series = (
             p.sparkline
@@ -123,27 +126,29 @@ def render_frame(
         )
         if samples:
             series = series[-samples:]
-        box_h = 1 if not any(series) else height
+        spend_h = 1 if not any(series) else height
+
+        quota_spark = None
+        if p.quota:
+            qhist = storage.get_quota_history(p.id)
+            quota_h = 1 if not any(qhist) else height
+            quota_spark = spark.render_sparkline(qhist, quota_h, vmax=100)
+            quota_color = _severity(max((w.utilization_pct for w in p.quota), default=0), pal)
+        else:
+            quota_color = pal["border"]
+
         key = health_key(p)
         color = pal[key] if key else pal["green"]
-        lines += spark.box_lines(
+        lines += spark.provider_box_lines(
             p.id,
             label,
-            spark.render_sparkline(series, box_h),
+            spark.render_sparkline(series, spend_h),
             color,
+            quota_spark,
+            quota_color,
             pal["border"],
             inner,
         )
-
-        if p.quota:
-            peak = max((w.utilization_pct for w in p.quota), default=0)
-            qlabel = " · ".join(f"{w.label} {w.utilization_pct}%" for w in p.quota)
-            qhist = storage.get_quota_history(p.id)
-            qbox_h = 1 if not any(qhist) else height
-            qspark = spark.render_sparkline(qhist, qbox_h, vmax=100)
-            lines += spark.box_lines(
-                f"{p.id} quota", qlabel, qspark, _severity(peak, pal), pal["border"], inner
-            )
 
     return lines
 

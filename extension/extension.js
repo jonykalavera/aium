@@ -300,9 +300,12 @@ export default class AiumExtension extends Extension {
         row.add_child(detail);
         box.add_child(row);
 
-        const spark = this._providerSpark(provider);
-        if (spark)
-            box.add_child(spark);
+        const spend = this._sparkline(provider.sparkline, health ?? [0.4, 0.6, 1.0]);
+        if (spend)
+            box.add_child(spend);
+        const quota = this._quotaSparkline(provider);
+        if (quota)
+            box.add_child(quota);
 
         item.add_child(box);
 
@@ -311,19 +314,18 @@ export default class AiumExtension extends Extension {
         return item;
     }
 
-    _providerSpark(provider) {
-        const values = provider.sparkline;
+    _sparkline(values, color = [0.4, 0.6, 1.0], max = null) {
         if (!values || values.length < 2)
             return null;
-
-        let color = [0.4, 0.6, 1.0];
-        let max = null;
-        if (provider.quota?.length) {
-            const peak = Math.max(...provider.quota.map(w => w.utilization_pct));
-            color = severityColor(peak);
-            max = 100;
-        }
         return new Sparkline(values, color, max);
+    }
+
+    _quotaSparkline(provider) {
+        const values = provider.quota_sparkline;
+        if (!values || values.length < 2)
+            return null;
+        const peak = Math.max(...provider.quota.map(w => w.utilization_pct));
+        return new Sparkline(values, severityColor(peak), 100);
     }
 
     _openUri(url) {

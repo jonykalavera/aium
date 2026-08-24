@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import unicodedata
+
 #: Left/right braille column dot bits, indexed by dot offset **from the bottom**
 #: (offset 0 = lowest dot in the cell, 3 = top dot).
 _LEFT = (0x40, 0x04, 0x02, 0x01)
@@ -66,6 +68,31 @@ def _render_bars(scaled: list[int], height: int) -> str:
     return "\n".join(lines)
 
 
+def _display_width(text: str) -> int:
+    """Terminal display columns: CJK (wide/fullwidth) characters count as 2."""
+    return sum(2 if unicodedata.east_asian_width(c) in ("W", "F") else 1 for c in text)
+
+
+def _truncate_display(text: str, max_width: int) -> str:
+    """Truncate ``text`` so it fits in ``max_width`` display columns, with ``…``."""
+    if _display_width(text) <= max_width:
+        return text
+    result = ""
+    for char in text:
+        if _display_width(result + char) > max_width - 1:
+            break
+        result += char
+    return result + "…"
+
+
+def _title_line(name: str, label: str, color: str, border: str, inner_width: int) -> str:
+    """The top border line: label in the color, dashed fill, truncated to fit."""
+    title = f"{name.upper()} {label}".replace("\n", " ").strip()
+    title = _truncate_display(title, max(1, inner_width - 5))
+    fill = max(0, inner_width + 2 - len("╭─ ") - _display_width(title) - len(" ╮"))
+    return f"[{border}]╭─ [/][{color}]{title}[/][{border}]{'─' * fill}╮[/]"
+
+
 def box_lines(
     name: str,
     label: str,
@@ -78,17 +105,43 @@ def box_lines(
 
     Lines carry rich markup tags (``[hex]...[/]``) so a ``rich`` console can
     render them; ``inner_width`` is the graph width in characters. Long labels
-    are truncated so the top border never exceeds the box width.
+    are truncated by display width so the top border never overflows (CJK-aware).
     """
-    title = f"{name.upper()} {label}".replace("\n", " ").strip()
-    max_title = max(1, inner_width - 5)
-    if len(title) > max_title:
-        title = title[: max_title - 1] + "…"
-    fill = max(0, inner_width + 2 - len("╭─ ") - len(title) - len(" ╮"))
-    lines = [f"[{border}]╭─ [/][{color}]{title}[/][{border}]{'─' * fill}╮[/]"]
+    lines = [_title_line(name, label, color, border, inner_width)]
     rows = spark.split("\n") or [""]
     for row in rows:
         content = row.replace("\u2800", " ").ljust(inner_width)
         lines.append(f"[{border}]│[/][{color}]{content}[/][{border}]│[/]")
+    lines.append(f"[{border}]╰[/]{'─' * inner_width}[{border}]╯[/]")
+    return lines
+
+
+def provider_box_lines(
+    name: str,
+    label: str,
+    spend_spark: str,
+    spend_color: str,
+    quota_spark: str | None,
+    quota_color: str,
+    border: str,
+    inner_width: int,
+) -> list[str]:
+    """One grouped box per provider: consumption (``spend_spark``) on top, and
+    quota utilization (``quota_spark``, when given) below, each tagged ``S``/``Q``.
+    ``spend_spark``/``quota_spark`` are already ``render_sparkline`` strings.
+    """
+    lines = [_title_line(name, label, spend_color, border, inner_width)]
+
+    def rows_for(spark: str, tag: str | None, color: str) -> None:
+        for row in spark.split("\n") or [""]:
+            content = row.replace("\u2800", " ").ljust(inner_width)
+            if tag:
+                content = tag + " " + content[: inner_width - 2].ljust(inner_width - 2)
+            lines.append(f"[{border}]│[/][{color}]{content}[/][{border}]│[/]")
+
+    rows_for(spend_spark, "S" if quota_spark is not None else None, spend_color)
+    if quota_spark is not None:
+        lines.append(f"[{border}]│[/]{' ' * inner_width}[{border}]│[/]")
+        rows_for(quota_spark, "Q", quota_color)
     lines.append(f"[{border}]╰[/]{'─' * inner_width}[{border}]╯[/]")
     return lines

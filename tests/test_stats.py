@@ -9,7 +9,7 @@ import pytest
 
 from aium import storage
 from aium.models import Balance, ProviderStatus, ProviderType, QuotaWindow, StatusFile, Totals
-from aium.spark import box_lines, render_sparkline
+from aium.spark import _display_width, box_lines, provider_box_lines, render_sparkline
 from aium.stats import render_frame
 
 
@@ -112,13 +112,23 @@ def test_frame_provider_boxes():
     lines = render_frame(_status(), width=80)
     text = "\n".join(_plain(line) for line in lines)
     assert "╭─ DS $15.71 · $14.80/mo" in text
-    assert "╭─ AN QUOTA 5h 85% · 7d 10%" in text
+    assert "╭─ AN $0.00/mo · 5h 85% · 7d 10%" in text
+    assert any(_plain(line).startswith("│S") for line in lines)  # consumption section
+    assert any(_plain(line).startswith("│Q") for line in lines)  # quota section
+
+
+def test_frame_one_box_per_provider():
+    lines = render_frame(_status(), width=80)
+    text = "\n".join(_plain(line) for line in lines)
+    assert text.count("╭─ AN") == 1
+    assert text.count("╭─ DS") == 1
+    assert "QUOTA" not in text  # no separate quota box anymore
 
 
 def test_frame_quota_severity_colors():
     lines = render_frame(_status(), width=80)
-    quota_top = next(line for line in lines if "QUOTA" in _plain(line))
-    assert "#f9e2af" in quota_top  # 85% -> amber
+    quota_row = next(line for line in lines if _plain(line).startswith("│Q"))
+    assert "#f9e2af" in quota_row  # 85% -> amber
 
 
 def _provider(available: float, quota_pct: int | None = None) -> ProviderStatus:
@@ -167,4 +177,36 @@ def test_frame_provider_filter():
     lines = render_frame(_status(), width=80, provider_id="an")
     text = "\n".join(_plain(line) for line in lines)
     assert "DS" not in text
-    assert "AN QUOTA" in text
+    assert "╭─ AN $0.00/mo · 5h 85% · 7d 10%" in text
+
+
+def test_provider_box_sections_and_spacer():
+    spend = render_sparkline([1.0, 2.0, 3.0], 3)
+    quota = render_sparkline([40.0, 80.0, 90.0], 3, vmax=100)
+    lines = provider_box_lines(
+        "ds", "$15.71", spend, "#a6e3a1", quota, "#f38ba8", "#6c7086", inner_width=20
+    )
+    text = _plain("\n".join(lines))
+    assert sum(1 for line in lines if _plain(line).startswith("│S")) == 3
+    assert sum(1 for line in lines if _plain(line).startswith("│Q")) == 3
+    assert "│" + " " * 20 + "│" in text  # spacer between sections
+    assert len(lines) == 1 + 3 + 1 + 3 + 1
+
+
+def test_provider_box_no_quota_has_no_gutter():
+    spend = render_sparkline([1.0, 2.0, 3.0], 3)
+    lines = provider_box_lines(
+        "ds", "$15.71", spend, "#a6e3a1", None, "#6c7086", "#6c7086", inner_width=20
+    )
+    text = _plain("\n".join(lines))
+    assert "│ S " not in text
+    assert "│ Q " not in text
+    assert len(lines) == 1 + 3 + 1
+
+
+def test_box_lines_cjk_title_truncates_to_box_width():
+    lines = box_lines(
+        "glm", "error: 当前用户不存在coding plan", "\n", "#f38ba8", "#6c7086", inner_width=20
+    )
+    for line in lines:
+        assert _display_width(_plain(line)) <= 22  # inner_width + 2 borders
