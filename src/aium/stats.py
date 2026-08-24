@@ -100,8 +100,9 @@ def render_frame(
             sub = p.subscription
             assert sub is not None
             label = f"{_money(sub.cost)}/{sub.cycle.value} · {p.days_until_renewal}d"
+            # Fixed-cost subscription: no usage history to plot, keep it compact.
             lines += spark.box_lines(
-                p.id, label, "\n".join([""] * height), pal["sky"], pal["border"], inner
+                p.id, label, "\n".join([""] * 1), pal["sky"], pal["border"], inner
             )
             continue
 
@@ -174,22 +175,16 @@ def run_stats(
         _console.print("\n".join(frame()))
         return
 
-    sys.stdout.write("\033[2J\033[H")
-    sys.stdout.flush()
-    block = 0
+    sys.stdout.write("\033[?25l")  # hide cursor while redrawing
     try:
         while True:
-            if block:
-                _clear_lines(block)
-            lines = frame()
-            _console.print("\n".join(lines))
-            block = len(lines)
+            # Full-screen clear: the block can be taller than the terminal, so
+            # per-line clearing scrolls and leaves stale rows (header repeats).
+            sys.stdout.write("\033[H\033[J")
+            sys.stdout.flush()
+            _console.print("\n".join(frame()))
             time.sleep(eff_interval)
     except KeyboardInterrupt:
         pass
-
-
-def _clear_lines(count: int) -> None:
-    """Move the cursor up and clear the previously printed block."""
-    sys.stdout.write(f"\033[{count}A\033[J")
-    sys.stdout.flush()
+    finally:
+        sys.stdout.write("\033[?25h")  # restore cursor
