@@ -23,6 +23,12 @@ make uv.typecheck / make uv.lint / make uv.format
 make ext-test                   # GJS unit tests for extension/lib (needs gjs)
 ```
 
+`aium stats` renders a braille-sparkline dashboard from `status.json` +
+SQLite history (`spark.py` has the vendored renderer, `stats.py` the frame +
+live loop). Box colors mirror the extension health dot (quota ≥90/≥70, prepaid
+balance <`balance-warn`/<`balance-critical` defaults 10/1); `AIUM_THEME=light`
+switches the Catppuccin palette.
+
 Recipes use bare commands; the `uv.%` wrapper (`make uv.<target>`) runs them in
 the uv venv. Run `make uv.check` and `make ext-test` before considering work
 done (the extension's pure logic is tested separately with `gjs`).

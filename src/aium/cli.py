@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 from datetime import UTC, datetime, timedelta
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as package_version
@@ -31,6 +32,7 @@ from .models import (
 from .providers.registry import all_kinds, get_spec
 from .secrets import SecretsStore
 from .service import poll as run_poll
+from .stats import run_stats as run_stats_dashboard
 
 app = typer.Typer()
 providers_app = typer.Typer(help="Add, update, list and remove providers")
@@ -306,6 +308,34 @@ def history(
     for ts, balance in snapshots:
         table.add_row(ts.isoformat(), f"{balance:.4f}")
     console.print(table)
+
+
+@app.command()
+def stats(
+    provider_id: str | None = typer.Option(None, "--provider", help="Only show this provider"),
+    once: bool = typer.Option(False, "--once", help="Print one frame and exit"),
+    poll: bool = typer.Option(
+        False, "--poll", help="Re-run provider polls on each refresh (min interval 60s)"
+    ),
+    interval: float = typer.Option(
+        0.0, "--interval", help="Refresh seconds (default: 5 watch, 60 with --poll)"
+    ),
+    height: int = typer.Option(3, "--height", min=1, max=8, help="Sparkline height in rows"),
+    samples: int | None = typer.Option(None, "--samples", min=1, help="History samples"),
+) -> None:
+    """Render spend history as braille sparklines (live by default, Ctrl+C to stop)."""
+    import shutil
+
+    run_stats_dashboard(
+        once=once,
+        poll=poll,
+        interval=interval,
+        height=height,
+        samples=samples,
+        provider_id=provider_id,
+        width=shutil.get_terminal_size((80, 24)).columns,
+        tty=sys.stdout.isatty(),
+    )
 
 
 @app.callback(no_args_is_help=True, invoke_without_command=True)

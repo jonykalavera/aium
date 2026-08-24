@@ -120,6 +120,9 @@ aium keys set|list|delete
 aium poll                 # fetch every provider, persist history, refresh cache
 aium status               # show the last cached status
 aium history <id>         # balance history for a provider
+aium stats                # braille sparkline dashboard (live, Ctrl+C to stop)
+aium stats --once         # single frame
+aium stats --provider deepseek --poll
 ```
 
 `peak_window` marks the UTC **peak (high-tariff)** hours as `'HH:MM-HH:MM'`
