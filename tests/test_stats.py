@@ -111,24 +111,28 @@ def test_frame_header_and_daily_box():
 def test_frame_provider_boxes():
     lines = render_frame(_status(), width=80)
     text = "\n".join(_plain(line) for line in lines)
-    assert "╭─ DS $15.71 · $14.80/mo" in text
-    assert "╭─ AN $0.00/mo · 5h 85% · 7d 10%" in text
-    assert any(_plain(line).startswith("│S") for line in lines)  # consumption section
-    assert any(_plain(line).startswith("│Q") for line in lines)  # quota section
+    assert "● DS $15.71 · $14.80/mo" in text
+    assert "● AN $0.00/mo · 5h 85% · 7d 10%" in text
+    # DS (balance 15.71 -> green dot) shows a spend section; no data for AN.
+    spend_row = next(line for line in lines if _plain(line).startswith("│"))
+    assert "#89dceb" in spend_row  # spend is fixed blue
 
 
 def test_frame_one_box_per_provider():
     lines = render_frame(_status(), width=80)
     text = "\n".join(_plain(line) for line in lines)
-    assert text.count("╭─ AN") == 1
-    assert text.count("╭─ DS") == 1
+    assert text.count("╭─ ● AN") == 1
+    assert text.count("╭─ ● DS") == 1
     assert "QUOTA" not in text  # no separate quota box anymore
 
 
-def test_frame_quota_severity_colors():
+def test_frame_quota_section_mauve_and_amber_dot():
+    storage.record_quota("an", 85.0)
     lines = render_frame(_status(), width=80)
     quota_row = next(line for line in lines if _plain(line).startswith("│Q"))
-    assert "#f9e2af" in quota_row  # 85% -> amber
+    assert "#cba6f7" in quota_row  # quota fixed mauve
+    an_top = next(line for line in lines if "● AN" in _plain(line))
+    assert "#f9e2af" in an_top  # dot amber (quota 85%)
 
 
 def _provider(available: float, quota_pct: int | None = None) -> ProviderStatus:
@@ -156,37 +160,57 @@ def _frame_for(p: ProviderStatus) -> list[str]:
     return render_frame(status, width=80)
 
 
-def test_spend_box_color_follows_health():
-    spend_top = next(line for line in _frame_for(_provider(25)) if _plain(line).startswith("╭─ P"))
-    assert "#a6e3a1" in spend_top  # balance 25 -> green
-
-    spend_top = next(line for line in _frame_for(_provider(5)) if _plain(line).startswith("╭─ P"))
-    assert "#f9e2af" in spend_top  # balance 5 -> amber
-
-    spend_top = next(line for line in _frame_for(_provider(0.5)) if _plain(line).startswith("╭─ P"))
-    assert "#f38ba8" in spend_top  # balance 0.5 -> red
+def _dot_color(p: ProviderStatus) -> str:
+    title = next(line for line in _frame_for(p) if "●" in _plain(line))
+    return title
 
 
-def test_spend_box_color_follows_quota_health():
-    top = _frame_for(_provider(25, quota_pct=95))
-    spend_top = next(line for line in top if _plain(line).startswith("╭─ P"))
-    assert "#f38ba8" in spend_top  # quota 95% wins over healthy balance
+def test_health_dot_colors():
+    assert "#a6e3a1" in _dot_color(_provider(25))  # balance 25 -> green
+    assert "#f9e2af" in _dot_color(_provider(5))  # balance 5 -> amber
+    assert "#f38ba8" in _dot_color(_provider(0.5))  # balance 0.5 -> red
+
+
+def test_health_dot_quota_wins():
+    assert "#f38ba8" in _dot_color(_provider(25, quota_pct=95))  # quota 95% -> red
+
+
+def test_spend_section_stays_blue_even_when_critical():
+    spend_row = next(line for line in _frame_for(_provider(0.5)) if _plain(line).startswith("│"))
+    assert "#89dceb" in spend_row
+
+
+def test_spend_section_hidden_when_no_data():
+    p = _provider(25)
+    p.sparkline = None
+    text = "\n".join(_plain(line) for line in _frame_for(p))
+    assert "│S" not in text
 
 
 def test_frame_provider_filter():
     lines = render_frame(_status(), width=80, provider_id="an")
     text = "\n".join(_plain(line) for line in lines)
     assert "DS" not in text
-    assert "╭─ AN $0.00/mo · 5h 85% · 7d 10%" in text
+    assert "● AN $0.00/mo · 5h 85% · 7d 10%" in text
 
 
 def test_provider_box_sections_and_spacer():
     spend = render_sparkline([1.0, 2.0, 3.0], 3)
     quota = render_sparkline([40.0, 80.0, 90.0], 3, vmax=100)
     lines = provider_box_lines(
-        "ds", "$15.71", spend, "#a6e3a1", quota, "#f38ba8", "#6c7086", inner_width=20
+        "ds",
+        "$15.71",
+        spend,
+        "#89dceb",
+        quota,
+        "#cba6f7",
+        "#6c7086",
+        inner_width=20,
+        health="#a6e3a1",
     )
     text = _plain("\n".join(lines))
+    assert "●" in _plain(lines[0])
+    assert "#a6e3a1" in lines[0]  # health dot green
     assert sum(1 for line in lines if _plain(line).startswith("│S")) == 3
     assert sum(1 for line in lines if _plain(line).startswith("│Q")) == 3
     assert "│" + " " * 20 + "│" in text  # spacer between sections
@@ -196,7 +220,7 @@ def test_provider_box_sections_and_spacer():
 def test_provider_box_no_quota_has_no_gutter():
     spend = render_sparkline([1.0, 2.0, 3.0], 3)
     lines = provider_box_lines(
-        "ds", "$15.71", spend, "#a6e3a1", None, "#6c7086", "#6c7086", inner_width=20
+        "ds", "$15.71", spend, "#89dceb", None, "#cba6f7", "#6c7086", inner_width=20
     )
     text = _plain("\n".join(lines))
     assert "│ S " not in text

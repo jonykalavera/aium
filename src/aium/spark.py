@@ -17,6 +17,7 @@ _PALETTES = {
         "green": "#a6e3a1",
         "yellow": "#f9e2af",
         "red": "#f38ba8",
+        "mauve": "#cba6f7",
     },
     "light": {
         "border": "#6c6f85",
@@ -24,6 +25,7 @@ _PALETTES = {
         "green": "#40a02b",
         "yellow": "#df8e1d",
         "red": "#d20f39",
+        "mauve": "#8839ef",
     },
 }
 
@@ -85,12 +87,24 @@ def _truncate_display(text: str, max_width: int) -> str:
     return result + "…"
 
 
-def _title_line(name: str, label: str, color: str, border: str, inner_width: int) -> str:
-    """The top border line: label in the color, dashed fill, truncated to fit."""
-    title = f"{name.upper()} {label}".replace("\n", " ").strip()
-    title = _truncate_display(title, max(1, inner_width - 5))
-    fill = max(0, inner_width + 2 - len("╭─ ") - _display_width(title) - len(" ╮"))
-    return f"[{border}]╭─ [/][{color}]{title}[/][{border}]{'─' * fill}╮[/]"
+def _title_line(
+    name: str,
+    label: str,
+    color: str,
+    border: str,
+    inner_width: int,
+    health: str | None = None,
+) -> str:
+    """The top border line: optional ``health`` dot, then label, dashed fill."""
+    raw = f"{name.upper()} {label}".replace("\n", " ").strip()
+    max_title = max(1, inner_width - 5 - (2 if health else 0))
+    title = _truncate_display(raw, max_title)
+    dot = f"[{health}]●[/] " if health else ""
+    fill = max(
+        0,
+        inner_width + 2 - len("╭─ ") - (2 if health else 0) - _display_width(title) - len(" ╮"),
+    )
+    return f"[{border}]╭─ [/]{dot}[{color}]{title}[/][{border}]{'─' * fill}╮[/]"
 
 
 def box_lines(
@@ -119,18 +133,21 @@ def box_lines(
 def provider_box_lines(
     name: str,
     label: str,
-    spend_spark: str,
+    spend_spark: str | None,
     spend_color: str,
     quota_spark: str | None,
     quota_color: str,
     border: str,
     inner_width: int,
+    health: str | None = None,
 ) -> list[str]:
-    """One grouped box per provider: consumption (``spend_spark``) on top, and
-    quota utilization (``quota_spark``, when given) below, each tagged ``S``/``Q``.
-    ``spend_spark``/``quota_spark`` are already ``render_sparkline`` strings.
+    """One grouped box per provider: consumption on top, quota below.
+
+    ``spend_spark``/``quota_spark`` are ``render_sparkline`` strings; ``None``
+    hides that section entirely. Sections are tagged ``S``/``Q`` and the
+    optional ``health`` dot (a color) sits next to the provider name.
     """
-    lines = [_title_line(name, label, spend_color, border, inner_width)]
+    lines = [_title_line(name, label, border, border, inner_width, health)]
 
     def rows_for(spark: str, tag: str | None, color: str) -> None:
         for row in spark.split("\n") or [""]:
@@ -139,9 +156,11 @@ def provider_box_lines(
                 content = tag + " " + content[: inner_width - 2].ljust(inner_width - 2)
             lines.append(f"[{border}]│[/][{color}]{content}[/][{border}]│[/]")
 
-    rows_for(spend_spark, "S" if quota_spark is not None else None, spend_color)
+    if spend_spark is not None:
+        rows_for(spend_spark, "S" if quota_spark is not None else None, spend_color)
     if quota_spark is not None:
-        lines.append(f"[{border}]│[/]{' ' * inner_width}[{border}]│[/]")
+        if spend_spark is not None:
+            lines.append(f"[{border}]│[/]{' ' * inner_width}[{border}]│[/]")
         rows_for(quota_spark, "Q", quota_color)
     lines.append(f"[{border}]╰[/]{'─' * inner_width}[{border}]╯[/]")
     return lines

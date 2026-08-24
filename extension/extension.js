@@ -10,7 +10,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
-import {healthColor, isRelevant, panelLabel, providerDetail, severityColor, summaryText, tooltipText} from './lib/status.js';
+import {healthColor, isRelevant, panelLabel, providerDetail, summaryText, tooltipText} from './lib/status.js';
 
 const STATUS_PATH = GLib.build_filenamev([
     GLib.get_user_cache_dir(), 'aium', 'status.json',
@@ -74,8 +74,12 @@ class PanelTooltip {
     }
 }
 
+//: Fixed metric colors: consumption is blue, quota utilization is mauve.
+const SPEND_COLOR = [0.4, 0.6, 1.0];
+const QUOTA_COLOR = [0.79, 0.65, 0.97];
+
 const Sparkline = GObject.registerClass(
-class Sparkline extends St.DrawingArea {
+ class Sparkline extends St.DrawingArea {
     constructor(values, color, max = null) {
         super({ style_class: 'aium-sparkline' });
         this._values = values ?? [];
@@ -300,7 +304,7 @@ export default class AiumExtension extends Extension {
         row.add_child(detail);
         box.add_child(row);
 
-        const spend = this._sparkline(provider.sparkline, health ?? [0.4, 0.6, 1.0]);
+        const spend = this._sparkline(provider.sparkline);
         if (spend)
             box.add_child(spend);
         const quota = this._quotaSparkline(provider);
@@ -314,18 +318,17 @@ export default class AiumExtension extends Extension {
         return item;
     }
 
-    _sparkline(values, color = [0.4, 0.6, 1.0], max = null) {
-        if (!values || values.length < 2)
+    _sparkline(values, color = SPEND_COLOR, max = null) {
+        if (!values || values.length < 2 || values.every(v => v <= 0))
             return null;
         return new Sparkline(values, color, max);
     }
 
     _quotaSparkline(provider) {
         const values = provider.quota_sparkline;
-        if (!values || values.length < 2)
+        if (!values || values.length < 2 || values.every(v => v <= 0))
             return null;
-        const peak = Math.max(...provider.quota.map(w => w.utilization_pct));
-        return new Sparkline(values, severityColor(peak), 100);
+        return new Sparkline(values, QUOTA_COLOR, 100);
     }
 
     _openUri(url) {

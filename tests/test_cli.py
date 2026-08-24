@@ -182,7 +182,8 @@ def test_openrouter_usage_uses_usage_monthly(fake_secrets):
     assert provider["id"] == "openrouter"
     assert provider["spend_this_month"] == 6.29
     assert provider["balance"]["available"] == 6.29
-    assert provider["sparkline"] == [4.29]
+    # sparkline is the cumulative usage level, not the per-poll delta
+    assert provider["sparkline"] == [2.0, 6.29]
 
 
 def test_keys_set_rejects_unknown_provider(fake_secrets):

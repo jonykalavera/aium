@@ -87,7 +87,9 @@ async def _collect(
                 spend_today = ledger.period_usage_spend(
                     storage.get_usage_history(cfg.id), day_start, day_end
                 )
-                sparkline = storage.get_usage_sparkline(cfg.id)
+                # Consumption level (cumulative used), so slow-changing monthly
+                # totals still show a visible line instead of a flat-zero delta.
+                sparkline = storage.get_usage_level(cfg.id)
             else:
                 spend_today = None
 

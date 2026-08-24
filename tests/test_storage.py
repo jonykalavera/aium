@@ -47,6 +47,7 @@ def test_usage_history_and_sparkline(tmp_path):
     history = storage.get_usage_history("or", db=db)
     assert [u for _, u in history] == [2.0, 3.5, 6.29]
     assert storage.get_usage_sparkline("or", db=db) == [1.5, 2.79]
+    assert storage.get_usage_level("or", db=db) == [2.0, 3.5, 6.29]
 
 
 def test_usage_monthly_spend(tmp_path):

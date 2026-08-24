@@ -21,14 +21,6 @@ def _money(value: float | None) -> str:
     return f"${value:,.2f}" if value is not None else "-"
 
 
-def _severity(pct: int, pal: dict[str, str]) -> str:
-    if pct >= 90:
-        return pal["red"]
-    if pct >= 70:
-        return pal["yellow"]
-    return pal["green"]
-
-
 def health_key(p) -> str | None:
     """The health dot color key for a provider (mirrors the extension's thresholds).
 
@@ -119,35 +111,30 @@ def render_frame(
         label = " · ".join(parts)
 
         series = (
-            p.sparkline
-            or storage.get_usage_sparkline(p.id)
-            or storage.get_spend_sparkline(p.id)
-            or []
+            p.sparkline or storage.get_usage_level(p.id) or storage.get_spend_sparkline(p.id) or []
         )
         if samples:
             series = series[-samples:]
-        spend_h = 1 if not any(series) else height
+        spend_spark = spark.render_sparkline(series, height) if any(series) else None
 
         quota_spark = None
         if p.quota:
             qhist = storage.get_quota_history(p.id)
-            quota_h = 1 if not any(qhist) else height
-            quota_spark = spark.render_sparkline(qhist, quota_h, vmax=100)
-            quota_color = _severity(max((w.utilization_pct for w in p.quota), default=0), pal)
-        else:
-            quota_color = pal["border"]
+            if any(qhist):
+                quota_spark = spark.render_sparkline(qhist, height, vmax=100)
 
         key = health_key(p)
-        color = pal[key] if key else pal["green"]
+        health = pal[key] if key else None
         lines += spark.provider_box_lines(
             p.id,
             label,
-            spark.render_sparkline(series, spend_h),
-            color,
+            spend_spark,
+            pal["sky"],
             quota_spark,
-            quota_color,
+            pal["mauve"],
             pal["border"],
             inner,
+            health,
         )
 
     return lines
