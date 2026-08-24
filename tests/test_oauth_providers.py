@@ -272,3 +272,12 @@ async def test_google_refresh_token_with_secret(tmp_path, monkeypatch):
 
     saved = _json.loads(path.read_text())
     assert saved["access_token"] == "fresh"
+
+
+def test_jwt_payload_rejects_garbage():
+    from aium.providers.oauth import jwt_exp, jwt_payload
+
+    assert jwt_payload("not-a-jwt") is None
+    assert jwt_payload("a.!!!not-base64!!.c") is None
+    assert jwt_payload("a..c") is None
+    assert jwt_exp("not-a-jwt") is None

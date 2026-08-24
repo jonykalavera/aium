@@ -142,6 +142,30 @@ describe('isRelevant', () => {
             false,
         );
     });
+    it('plan-only account is relevant', () => {
+        assertEqual(
+            isRelevant({
+                type: 'balance',
+                ok: true,
+                balance: null,
+                spend_this_month: null,
+                plan: 'Pro',
+            }),
+            true,
+        );
+    });
+    it('quota-only account is relevant', () => {
+        assertEqual(
+            isRelevant({
+                type: 'balance',
+                ok: true,
+                balance: null,
+                spend_this_month: 0,
+                quota: [{label: 'auto', utilization_pct: 0}],
+            }),
+            true,
+        );
+    });
     it('positive balance relevant', () => {
         assertEqual(
             isRelevant({type: 'balance', ok: true, balance: {available: 5}, spend_this_month: 0}),

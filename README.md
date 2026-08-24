@@ -17,7 +17,8 @@ for AI providers.
 - **Clickable providers** — open the provider's usage/dashboard page.
 - **Provider abstraction** — add a provider with one file + one registry entry.
 - **Secrets** — API keys in the system keyring; OAuth providers reuse the CLI's
-  own credential files (Codex, Claude Code, Antigravity).
+  own credential files (Codex, Claude Code, Antigravity); Cursor reuses the
+  signed-in IDE session.
 - **History** — SQLite time-series of balances, quota and usage.
 - **systemd timer** — polls every 60 minutes, no resident daemon.
 
@@ -86,6 +87,7 @@ aium status
 | `openai` | OAuth (Codex) | rate-limit quota windows | none |
 | `anthropic` | OAuth (Claude Code) | spend vs monthly limit + quota windows | monthly budget remaining (`budget`) |
 | `google` | OAuth (Antigravity) | plan/tier + quota (paid tiers) | none |
+| `cursor` | IDE session | included+on-demand spend; remaining included budget; quota windows | remaining included usage (`budget`) |
 | `zai` | API key | quota windows + plan | none |
 | `manual` | — | fixed subscription cost + renewal | — |
 
@@ -93,8 +95,10 @@ aium status
 - **Prepaid credit** (`balance`/`credits`) — real money on the account. OpenRouter
   reports it as `credits` because BYOK/free usage is billed elsewhere and does
   not decrement it.
-- **Budget** (`budget`) — Anthropic's remaining monthly spending limit, not
-  money you hold.
+- **Budget** (`budget`) — remaining monthly spending limit (Anthropic extra
+  usage, Cursor **included** usage), not money you hold. Cursor's
+  `spend_this_month` is included usage consumed **plus** on-demand overage;
+  that spend is not subtracted from the included-budget row.
 - **None** — the provider exposes no balance (quota/plan only).
 
 The aggregated **Prepaid balance** total sums only prepaid-credit balances;
@@ -102,7 +106,10 @@ budget and quota-only providers are shown per-row but excluded from the total.
 
 OAuth providers reuse the CLI's own credential files (`~/.codex/auth.json`,
 `~/.claude/.credentials.json`, `~/.gemini/oauth_creds.json`) — no API key
-needed. Their usage endpoints are **private/undocumented** and may break.
+needed. Cursor reads the signed-in IDE session from
+`~/.config/Cursor/User/globalStorage/state.vscdb` (or `cursor-agent`'s
+`~/.config/cursor/auth.json`). Their usage endpoints are **private/undocumented**
+and may break.
 
 ### Commands
 

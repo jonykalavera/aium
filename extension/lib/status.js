@@ -131,6 +131,10 @@ export function isRelevant(provider) {
         return true;
     if (!provider.ok)
         return true;
+    if (provider.plan)
+        return true;
+    if (provider.quota?.length)
+        return true;
     const balance = provider.balance?.available ?? 0;
     const spent = provider.spend_this_month ?? 0;
     return balance > 0 || spent > 0;
