@@ -124,7 +124,6 @@ const Sparkline = GObject.registerClass(
         const max = this._max ?? Math.max(...values, 0.01);
         const n = values.length;
         const stepX = width / (n - 1);
-        const [r, g, b] = this._color;
         const y = i =>
             height - Math.min(1, Math.max(0, values[i] / max)) * (height - 1);
 

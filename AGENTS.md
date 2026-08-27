@@ -22,7 +22,7 @@ uv sync --all-groups --locked   # install deps
 make uv.check                   # ruff lint + ty typecheck + ruff format --check
 make uv.test                    # pytest --cov aium --blockage (network blocked)
 make uv.typecheck / make uv.lint / make uv.format
-make ext-test                   # GJS unit tests for extension/lib (needs gjs)
+make ext-test                   # GJS unit tests for extension/lib + gjs syntax check of extension.js/prefs.js (needs gjs)
 ```
 
 `aium stats` renders a braille-sparkline dashboard from `status.json` +
