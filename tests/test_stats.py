@@ -10,7 +10,7 @@ import pytest
 from aium import storage
 from aium.models import Balance, ProviderStatus, ProviderType, QuotaWindow, StatusFile, Totals
 from aium.spark import _display_width, box_lines, provider_box_lines, render_sparkline
-from aium.stats import render_frame
+from aium.stats import _is_quit_key, render_frame
 
 
 def _plain(line: str) -> str:
@@ -249,3 +249,20 @@ def test_box_lines_cjk_title_truncates_to_box_width():
     )
     for line in lines:
         assert _display_width(_plain(line)) <= 22  # inner_width + 2 borders
+
+
+def test_title_line_aligned_with_space_after_text():
+    lines = box_lines("test", "1.00 USD", "\n".join(["a", "b", "c"]), "#89dceb", "#6c7086", 20)
+    top = _plain(lines[0])
+    assert top.endswith("╮")
+    assert _display_width(top) == 22  # aligned with the box sides
+    assert "1.00 USD ─" in top  # space between the text and the fill dashes
+
+
+def test_is_quit_key():
+    assert _is_quit_key(b"q")
+    assert _is_quit_key(b"Q")
+    assert _is_quit_key(b"\x1b")
+    assert _is_quit_key(b"\x03")
+    assert not _is_quit_key(b"a")
+    assert not _is_quit_key(b"j")

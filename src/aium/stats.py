@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import asyncio
 import os
+import select
 import sys
+import termios
 import time
+import tty as ttymod
 
 from rich.console import Console
 
@@ -15,6 +18,31 @@ from .service import poll as run_poll
 
 #: Console with rich's number highlighter disabled (labels are raw).
 _console = Console(highlight=False)
+
+
+def _is_quit_key(byte: bytes) -> bool:
+    """True when ``byte`` is ``q``/``Q`` or ESC (or Ctrl+C delivered as a byte)."""
+    return byte in (b"q", b"Q", b"\x1b", b"\x03")
+
+
+def _drain_escape(fd: int) -> None:
+    """Consume the rest of an ESC sequence (e.g. arrow keys) so only a lone ESC
+    quits the live view."""
+    while select.select([fd], [], [], 0.05)[0]:
+        os.read(fd, 1)
+
+
+def _wait_for_quit(fd: int, timeout: float) -> bool:
+    """Wait up to ``timeout`` seconds for a key; return True on q/Q/ESC."""
+    ready, _, _ = select.select([fd], [], [], timeout)
+    if not ready:
+        return False
+    key = os.read(fd, 1)
+    if _is_quit_key(key):
+        return True
+    if key == b"\x1b":
+        _drain_escape(fd)
+    return False
 
 
 def _money(value: float | None) -> str:
@@ -167,6 +195,11 @@ def run_stats(
         _console.print("\n".join(frame()))
         return
 
+    interactive = sys.stdin.isatty()
+    if interactive:
+        fd = sys.stdin.fileno()
+        old = termios.tcgetattr(fd)
+        ttymod.setcbreak(fd)  # raw keypresses without Enter; Ctrl+C becomes \x03
     sys.stdout.write("\033[?25l")  # hide cursor while redrawing
     try:
         while True:
@@ -175,8 +208,14 @@ def run_stats(
             sys.stdout.write("\033[H\033[J")
             sys.stdout.flush()
             _console.print("\n".join(frame()))
-            time.sleep(eff_interval)
+            if interactive:
+                if _wait_for_quit(fd, eff_interval):
+                    break
+            else:
+                time.sleep(eff_interval)
     except KeyboardInterrupt:
         pass
     finally:
+        if interactive:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old)
         sys.stdout.write("\033[?25h")  # restore cursor

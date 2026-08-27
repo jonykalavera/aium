@@ -109,7 +109,7 @@ def _title_line(
         0,
         inner_width + 2 - len("╭─ ") - (2 if health else 0) - _display_width(title) - len(" ╮"),
     )
-    return f"[{border}]╭─ [/]{dot}[{color}]{title}[/][{border}]{'─' * fill}╮[/]"
+    return f"[{border}]╭─ [/]{dot}[{color}]{title}[/] [{border}]{'─' * fill}╮[/]"
 
 
 def box_lines(
