@@ -123,6 +123,7 @@ aium history <id>         # balance history for a provider
 aium stats                # braille sparkline dashboard (live, Ctrl+C to stop)
 aium stats --once         # single frame
 aium stats --provider deepseek --poll
+aium report --group day|week|month [--periods N] [--provider ID] [--json]   # consumption history
 ```
 
 `peak_window` marks the UTC **peak (high-tariff)** hours as `'HH:MM-HH:MM'`

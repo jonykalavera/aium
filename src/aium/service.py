@@ -20,6 +20,7 @@ from .models import (
 from .providers import BalanceProvider, CloudProvider, ProviderError, build_provider
 from .providers.manual import ManualSubscription
 from .providers.registry import get_spec
+from .report import daily_series
 from .secrets import SecretsStore
 
 
@@ -163,38 +164,6 @@ def _aggregate(
     )
 
 
-def _provider_daily_spend(
-    cfg: ProviderConfig, bounds: list[tuple[datetime, datetime]]
-) -> list[float]:
-    """Spend per local day from history, mirroring the `_collect` attribution.
-
-    Cumulative/usage providers derive days from `usage_history`; balance-only
-    providers from `snapshots`. Manual subscriptions spread nothing (their flat
-    cost already lands in `spend_this_month`).
-    """
-    if cfg.type == ProviderType.manual:
-        return [0.0] * len(bounds)
-    history = storage.get_usage_history(cfg.id)
-    if history:
-        return [round(ledger.period_usage_spend(history, s, e), 2) for s, e in bounds]
-    snapshots = storage.get_snapshots(cfg.id)
-    if snapshots:
-        return [round(ledger.period_spend(snapshots, s, e), 2) for s, e in bounds]
-    return [0.0] * len(bounds)
-
-
-def _daily_series(
-    providers: list[ProviderConfig], bounds: list[tuple[datetime, datetime]]
-) -> list[float]:
-    daily = [0.0] * len(bounds)
-    for cfg in providers:
-        if not cfg.enabled:
-            continue
-        series = _provider_daily_spend(cfg, bounds)
-        daily = [round(d + v, 2) for d, v in zip(daily, series, strict=True)]
-    return daily
-
-
 async def poll(http: httpx.AsyncClient | None = None) -> StatusFile:
     settings = load_settings()
     providers = load_providers()
@@ -212,7 +181,7 @@ async def poll(http: httpx.AsyncClient | None = None) -> StatusFile:
         if own_client:
             await http.aclose()
 
-    totals = _aggregate(statuses, settings.base_currency, _daily_series(providers, bounds))
+    totals = _aggregate(statuses, settings.base_currency, daily_series(providers, bounds))
     status = StatusFile(totals=totals, providers=statuses)
     storage.write_status(status)
     return status
