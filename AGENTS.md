@@ -11,9 +11,10 @@ AI usage monitor: a Python CLI core + a GNOME Shell extension (passive outlet).
 - The JSON schema in `src/aium/models.py` (`StatusFile`/`ProviderStatus`) is the
   contract between the two. Changing a field means updating `service.py` AND the
   display code: pure logic in `extension/lib/status.js` (unit-tested), widgets
-  in `extension/extension.js`. `ProviderStatus.sparkline` is always the **spend**
-  history; quota providers also carry `quota_sparkline` (utilization %) — the
-  extension and `aium stats` render both, grouped per provider.
+  in `extension/extension.js`. `ProviderStatus.sparkline` is the **consumption**
+  history (cumulative usage level for usage providers, balance-spend deltas
+  otherwise); quota providers also carry `quota_sparkline` (utilization %) —
+  the extension and `aium stats` render both, grouped per provider.
 
 ## Commands
 

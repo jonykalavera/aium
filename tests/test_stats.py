@@ -142,12 +142,19 @@ def test_frame_one_box_per_provider():
 
 
 def test_frame_quota_section_mauve_and_amber_dot():
-    storage.record_quota("an", 85.0)
-    lines = render_frame(_status(), width=80)
+    status = _status()
+    status.providers[1].quota_sparkline = [4.0, 18.0, 34.0, 8.0]
+    lines = render_frame(status, width=80)
     quota_row = next(line for line in lines if _plain(line).startswith("│Q"))
     assert "#cba6f7" in quota_row  # quota fixed mauve
     an_top = next(line for line in lines if "● AN" in _plain(line))
     assert "#f9e2af" in an_top  # dot amber (quota 85%)
+
+
+def test_frame_quota_section_falls_back_to_db():
+    storage.record_quota("an", 85.0)
+    lines = render_frame(_status(), width=80)
+    assert any(_plain(line).startswith("│Q") for line in lines)
 
 
 def _provider(available: float, quota_pct: int | None = None) -> ProviderStatus:
@@ -262,7 +269,7 @@ def test_title_line_aligned_with_space_after_text():
 def test_is_quit_key():
     assert _is_quit_key(b"q")
     assert _is_quit_key(b"Q")
-    assert _is_quit_key(b"\x1b")
     assert _is_quit_key(b"\x03")
+    assert not _is_quit_key(b"\x1b")  # ESC is handled separately (lone vs sequence)
     assert not _is_quit_key(b"a")
     assert not _is_quit_key(b"j")

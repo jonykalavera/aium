@@ -23,13 +23,12 @@ _console = Console(highlight=False)
 
 
 def _is_quit_key(byte: bytes) -> bool:
-    """True when ``byte`` is ``q``/``Q`` or ESC (or Ctrl+C delivered as a byte)."""
-    return byte in (b"q", b"Q", b"\x1b", b"\x03")
+    """True when ``byte`` is ``q``/``Q`` (or Ctrl+C delivered as a byte)."""
+    return byte in (b"q", b"Q", b"\x03")
 
 
 def _drain_escape(fd: int) -> None:
-    """Consume the rest of an ESC sequence (e.g. arrow keys) so only a lone ESC
-    quits the live view."""
+    """Consume the rest of an ESC sequence (e.g. arrow keys)."""
     while select.select([fd], [], [], 0.05)[0]:
         os.read(fd, 1)
 
@@ -48,10 +47,16 @@ def _wait_for_key_or_resize(fd: int, wakeup_r: int, timeout: float) -> tuple[boo
         os.read(wakeup_r, 4096)  # drain the SIGWINCH wakeup byte
         return False, True
     key = os.read(fd, 1)
+    if key == b"\x1b":
+        # A lone ESC quits; ESC followed by more bytes is an escape sequence
+        # (e.g. arrow keys) and is ignored.
+        more, _, _ = select.select([fd], [], [], 0.05)
+        if more:
+            _drain_escape(fd)
+            return False, False
+        return True, False
     if _is_quit_key(key):
         return True, False
-    if key == b"\x1b":
-        _drain_escape(fd)
     return False, False
 
 
@@ -157,7 +162,13 @@ def render_frame(
 
         quota_spark = None
         if p.quota:
-            qhist = storage.get_quota_history(p.id)
+            qhist = (
+                p.quota_sparkline
+                if p.quota_sparkline is not None
+                else storage.get_quota_history(p.id)
+            )
+            if samples:
+                qhist = qhist[-samples:]
             if any(qhist):
                 quota_spark = spark.render_sparkline(qhist, height, vmax=100)
 
