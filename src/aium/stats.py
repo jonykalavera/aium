@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 import os
 import select
+import shutil
+import signal
 import sys
 import termios
 import time
@@ -32,17 +34,25 @@ def _drain_escape(fd: int) -> None:
         os.read(fd, 1)
 
 
-def _wait_for_quit(fd: int, timeout: float) -> bool:
-    """Wait up to ``timeout`` seconds for a key; return True on q/Q/ESC."""
-    ready, _, _ = select.select([fd], [], [], timeout)
+def _terminal_width(default: int = 80) -> int:
+    """The current terminal width in columns."""
+    return shutil.get_terminal_size((default, 24)).columns
+
+
+def _wait_for_key_or_resize(fd: int, wakeup_r: int, timeout: float) -> tuple[bool, bool]:
+    """Wait for a key or a terminal resize. Returns ``(quit_now, resized)``."""
+    ready, _, _ = select.select([fd, wakeup_r], [], [], timeout)
     if not ready:
-        return False
+        return False, False
+    if wakeup_r in ready:
+        os.read(wakeup_r, 4096)  # drain the SIGWINCH wakeup byte
+        return False, True
     key = os.read(fd, 1)
     if _is_quit_key(key):
-        return True
+        return True, False
     if key == b"\x1b":
         _drain_escape(fd)
-    return False
+    return False, False
 
 
 def _money(value: float | None) -> str:
@@ -183,7 +193,7 @@ def run_stats(
     storage.init_db()
     eff_interval = interval or (60.0 if poll else 5.0)
 
-    def frame() -> list[str]:
+    def frame(width: int) -> list[str]:
         status: StatusFile | None = asyncio.run(run_poll()) if poll else storage.read_status()
         if status is None:
             return ["No cached status. Run 'aium poll' first."]
@@ -192,30 +202,48 @@ def run_stats(
         )
 
     if once or not tty:
-        _console.print("\n".join(frame()))
+        _console.print("\n".join(frame(width)))
         return
 
     interactive = sys.stdin.isatty()
+    wakeup_r = wakeup_w = None
+    old_handler = None
     if interactive:
         fd = sys.stdin.fileno()
         old = termios.tcgetattr(fd)
         ttymod.setcbreak(fd)  # raw keypresses without Enter; Ctrl+C becomes \x03
+        # SIGWINCH wakes select via a pipe so a resize re-renders immediately.
+        wakeup_r, wakeup_w = os.pipe()
+        os.set_blocking(wakeup_w, False)
+        old_handler = signal.signal(signal.SIGWINCH, lambda *_: None)
+        signal.set_wakeup_fd(wakeup_w)
     sys.stdout.write("\033[?25l")  # hide cursor while redrawing
     try:
         while True:
             # Full-screen clear: the block can be taller than the terminal, so
             # per-line clearing scrolls and leaves stale rows (header repeats).
+            width = _terminal_width(width)
+            _console.width = width
             sys.stdout.write("\033[H\033[J")
             sys.stdout.flush()
-            _console.print("\n".join(frame()))
+            _console.print("\n".join(frame(width)))
             if interactive:
-                if _wait_for_quit(fd, eff_interval):
+                assert fd is not None and wakeup_r is not None
+                quit_now, resized = _wait_for_key_or_resize(fd, wakeup_r, eff_interval)
+                if quit_now:
                     break
+                if resized:
+                    continue  # re-render immediately with the new width
             else:
                 time.sleep(eff_interval)
     except KeyboardInterrupt:
         pass
     finally:
         if interactive:
+            assert fd is not None and wakeup_r is not None and wakeup_w is not None
+            signal.set_wakeup_fd(-1)
+            signal.signal(signal.SIGWINCH, old_handler)
+            os.close(wakeup_r)
+            os.close(wakeup_w)
             termios.tcsetattr(fd, termios.TCSADRAIN, old)
         sys.stdout.write("\033[?25h")  # restore cursor
