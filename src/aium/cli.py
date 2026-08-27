@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import sys
 from datetime import UTC, datetime, timedelta
 from importlib.metadata import PackageNotFoundError
@@ -348,7 +347,11 @@ def report(
     provider_id: str | None = typer.Option(None, "--provider", help="Only this provider"),
     as_json: bool = typer.Option(False, "--json", help="Print raw JSON"),
 ) -> None:
-    """Show consumption (spend) history grouped by day, week or month."""
+    """Show consumption (spend) history grouped by day, week or month.
+
+    Flat subscription costs (manual providers) are excluded — see `aium status`.
+    """
+    storage.init_db()
     group = group.lower()
     if group not in {"day", "week", "month"}:
         console.print(f"[red]Unknown group[/red] '{group}'. Use day | week | month.")
@@ -360,7 +363,7 @@ def report(
     rows = build_report(group, periods, provider_id)
 
     if as_json:
-        console.print_json(json.dumps(rows))
+        console.print_json(data=rows)
         return
 
     currency = load_settings().base_currency

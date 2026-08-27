@@ -174,6 +174,15 @@ def test_report_cli_week():
     assert "total" in result.output
 
 
+def test_report_cli_initializes_db():
+    # Fresh config: `providers add` creates the data dir but not the tables;
+    # `report` must not crash with "no such table" before the first poll/init.
+    assert runner.invoke(app, ["providers", "add", "deepseek"]).exit_code == 0
+    result = runner.invoke(app, ["report", "--group", "day", "--periods", "1"])
+    assert result.exit_code == 0, result.output
+    assert "period" in result.output
+
+
 def test_report_cli_unknown_group():
     assert runner.invoke(app, ["init"]).exit_code == 0
     result = runner.invoke(app, ["report", "--group", "bogus"])
