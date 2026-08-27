@@ -107,6 +107,20 @@ const Sparkline = GObject.registerClass(
         if (values.length < 2)
             return;
 
+        const [r, g, b] = this._color;
+        const flat = this._max === null && Math.min(...values) === Math.max(...values);
+        if (flat) {
+            // Constant relative series = "no change": flat line on the baseline,
+            // not "full". Matches `render_sparkline` in the CLI.
+            const y = height - 1;
+            cr.moveTo(0, y);
+            cr.lineTo(width, y);
+            cr.setSourceRGBA(r, g, b, 1.0);
+            cr.setLineWidth(1.5);
+            cr.stroke();
+            return;
+        }
+
         const max = this._max ?? Math.max(...values, 0.01);
         const n = values.length;
         const stepX = width / (n - 1);

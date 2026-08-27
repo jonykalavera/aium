@@ -51,6 +51,21 @@ def test_sparkline_relative_scale():
     assert cell0 & 0xB8 == 0xA0  # second sample fills 2 of 4 right dots
 
 
+def test_sparkline_flat_relative_renders_baseline():
+    # Constant series = "no change": flat line on the baseline, not "full".
+    lines = render_sparkline([5.0, 5.0, 5.0, 5.0], height=3).split("\n")
+    assert len(lines) == 3
+    assert all(chr(0x2800) in line for line in lines[:2])  # top rows blank
+    assert any(ord(c) > 0x2800 for c in lines[2])  # baseline dots
+
+
+def test_sparkline_flat_fixed_scale_keeps_absolute():
+    # With a fixed vmax the value keeps its absolute height (quota at 8%).
+    lines = render_sparkline([8.0, 8.0, 8.0], height=3, vmax=100).split("\n")
+    assert any(ord(c) > 0x2800 for c in lines[2])
+    assert not any(ord(c) > 0x2800 for c in lines[0])  # not full height
+
+
 def test_box_lines_count_and_label():
     spark = "\n".join(["a", "b", "c"])
     lines = box_lines("test", "1.00 USD", spark, "#89dceb", "#6c7086", inner_width=20)

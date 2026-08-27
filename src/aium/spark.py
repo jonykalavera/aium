@@ -42,6 +42,8 @@ def render_sparkline(values: list[float], height: int = 3, vmax: float | None = 
     scale (e.g. ``100`` for a percentage); ``None`` uses the window's maximum.
     A non-zero value always renders at least one unit so small values stay
     visible on a fixed scale. Values beyond the cap never grow past ``height``.
+    A **constant** relative series (all values equal) renders as a flat line on
+    the baseline instead of "full" — it means "no change", not "at 100%".
     """
     if not values:
         return "\n".join([""] * height)
@@ -49,7 +51,10 @@ def render_sparkline(values: list[float], height: int = 3, vmax: float | None = 
     if top <= 0:
         return "\n".join([""] * height)
     units = height * 4
-    scaled = [min(units, max(1, round(v / top * units))) if v > 0 else 0 for v in values]
+    if vmax is None and min(values) == max(values):
+        scaled = [1] * len(values)
+    else:
+        scaled = [min(units, max(1, round(v / top * units))) if v > 0 else 0 for v in values]
     return _render_bars(scaled, height)
 
 
