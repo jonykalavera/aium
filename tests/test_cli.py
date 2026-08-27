@@ -182,7 +182,8 @@ def test_openrouter_usage_uses_usage_monthly(fake_secrets):
     assert provider["id"] == "openrouter"
     assert provider["spend_this_month"] == 6.29
     assert provider["balance"]["available"] == 6.29
-    assert provider["sparkline"] == [4.29]
+    # sparkline is the cumulative usage level, not the per-poll delta
+    assert provider["sparkline"] == [2.0, 6.29]
 
 
 def test_keys_set_rejects_unknown_provider(fake_secrets):
@@ -202,6 +203,35 @@ def test_keys_list_marks_orphans(fake_secrets):
     assert result.exit_code == 0
     assert "deepseek" in result.output
     assert "orphan" in result.output
+
+
+@respx.mock
+def test_poll_sets_quota_sparkline_separate_from_spend(fake_secrets):
+    assert runner.invoke(app, ["init"]).exit_code == 0
+    assert runner.invoke(app, ["providers", "add", "zai"]).exit_code == 0
+    assert runner.invoke(app, ["keys", "set", "zai", "--secret", "sk"]).exit_code == 0
+    respx.get("https://api.z.ai/api/monitor/usage/quota/limit").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "success": True,
+                "data": {
+                    "level": "pro",
+                    "limits": [
+                        {"type": "TOKENS_LIMIT", "percentage": 62, "nextResetTime": 1787372813339}
+                    ],
+                },
+            },
+        )
+    )
+    assert runner.invoke(app, ["poll"]).exit_code == 0
+
+    payload = json.loads(runner.invoke(app, ["status", "--json"]).stdout)
+    provider = payload["providers"][0]
+    assert provider["id"] == "zai"
+    assert provider["quota_sparkline"] == [62.0]
+    assert provider["sparkline"] is None  # no usage/balance history for zai
 
 
 def test_aggregate_only_prepaid_balance():

@@ -10,7 +10,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
-import {healthColor, isRelevant, panelLabel, providerDetail, severityColor, summaryText, tooltipText} from './lib/status.js';
+import {healthColor, isRelevant, panelLabel, providerDetail, summaryText, tooltipText} from './lib/status.js';
 
 const STATUS_PATH = GLib.build_filenamev([
     GLib.get_user_cache_dir(), 'aium', 'status.json',
@@ -74,8 +74,12 @@ class PanelTooltip {
     }
 }
 
+//: Fixed metric colors: consumption is blue, quota utilization is mauve.
+const SPEND_COLOR = [0.4, 0.6, 1.0];
+const QUOTA_COLOR = [0.79, 0.65, 0.97];
+
 const Sparkline = GObject.registerClass(
-class Sparkline extends St.DrawingArea {
+ class Sparkline extends St.DrawingArea {
     constructor(values, color, max = null) {
         super({ style_class: 'aium-sparkline' });
         this._values = values ?? [];
@@ -103,10 +107,23 @@ class Sparkline extends St.DrawingArea {
         if (values.length < 2)
             return;
 
+        const [r, g, b] = this._color;
+        const flat = this._max === null && Math.min(...values) === Math.max(...values);
+        if (flat) {
+            // Constant relative series = "no change": flat line on the baseline,
+            // not "full". Matches `render_sparkline` in the CLI.
+            const y = height - 1;
+            cr.moveTo(0, y);
+            cr.lineTo(width, y);
+            cr.setSourceRGBA(r, g, b, 1.0);
+            cr.setLineWidth(1.5);
+            cr.stroke();
+            return;
+        }
+
         const max = this._max ?? Math.max(...values, 0.01);
         const n = values.length;
         const stepX = width / (n - 1);
-        const [r, g, b] = this._color;
         const y = i =>
             height - Math.min(1, Math.max(0, values[i] / max)) * (height - 1);
 
@@ -300,9 +317,12 @@ export default class AiumExtension extends Extension {
         row.add_child(detail);
         box.add_child(row);
 
-        const spark = this._providerSpark(provider);
-        if (spark)
-            box.add_child(spark);
+        const spend = this._sparkline(provider.sparkline);
+        if (spend)
+            box.add_child(spend);
+        const quota = this._quotaSparkline(provider);
+        if (quota)
+            box.add_child(quota);
 
         item.add_child(box);
 
@@ -311,19 +331,17 @@ export default class AiumExtension extends Extension {
         return item;
     }
 
-    _providerSpark(provider) {
-        const values = provider.sparkline;
-        if (!values || values.length < 2)
+    _sparkline(values, color = SPEND_COLOR, max = null) {
+        if (!values || values.length < 2 || values.every(v => v <= 0))
             return null;
-
-        let color = [0.4, 0.6, 1.0];
-        let max = null;
-        if (provider.quota?.length) {
-            const peak = Math.max(...provider.quota.map(w => w.utilization_pct));
-            color = severityColor(peak);
-            max = 100;
-        }
         return new Sparkline(values, color, max);
+    }
+
+    _quotaSparkline(provider) {
+        const values = provider.quota_sparkline;
+        if (!values || values.length < 2 || values.every(v => v <= 0))
+            return null;
+        return new Sparkline(values, QUOTA_COLOR, 100);
     }
 
     _openUri(url) {

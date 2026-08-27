@@ -172,6 +172,12 @@ def get_usage_sparkline(provider_id: str, limit: int = 30, db: Path | None = Non
     return deltas[-limit:]
 
 
+def get_usage_level(provider_id: str, limit: int = 30, db: Path | None = None) -> list[float]:
+    """Cumulative usage level per record — how much has been consumed."""
+    history = get_usage_history(provider_id, db=db)
+    return [round(total, 4) for _, total in history[-limit:]]
+
+
 def write_status(status: StatusFile, status_path: Path | None = None) -> None:
     status_path = status_path or paths.status_file()
     status_path.parent.mkdir(parents=True, exist_ok=True)

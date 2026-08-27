@@ -74,6 +74,7 @@ async def _collect(
             plan = await provider.fetch_plan(http, secret)
 
             sparkline: list[float] | None = None
+            quota_sparkline: list[float] | None = None
             spend: float | None = None
             day_start, day_end = day
 
@@ -86,7 +87,9 @@ async def _collect(
                 spend_today = ledger.period_usage_spend(
                     storage.get_usage_history(cfg.id), day_start, day_end
                 )
-                sparkline = storage.get_usage_sparkline(cfg.id)
+                # Consumption level (cumulative used), so slow-changing monthly
+                # totals still show a visible line instead of a flat-zero delta.
+                sparkline = storage.get_usage_level(cfg.id)
             else:
                 spend_today = None
 
@@ -105,7 +108,7 @@ async def _collect(
             if quota:
                 quota_peak = max(w.utilization_pct for w in quota)
                 storage.record_quota(cfg.id, quota_peak)
-                sparkline = storage.get_quota_history(cfg.id)
+                quota_sparkline = storage.get_quota_history(cfg.id)
 
             return ProviderStatus(
                 **base,
@@ -114,6 +117,7 @@ async def _collect(
                 usage=usage,
                 quota=quota,
                 sparkline=sparkline,
+                quota_sparkline=quota_sparkline,
                 plan=plan,
                 spend_this_month=spend,
                 spend_today=spend_today,

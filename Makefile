@@ -39,6 +39,7 @@ test:
 
 ext-test:
 	gjs -m extension/tests/run.js
+	./scripts/check-extension-syntax.sh
 
 run-%:
 	./scripts/$*.sh

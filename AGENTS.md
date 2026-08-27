@@ -11,7 +11,10 @@ AI usage monitor: a Python CLI core + a GNOME Shell extension (passive outlet).
 - The JSON schema in `src/aium/models.py` (`StatusFile`/`ProviderStatus`) is the
   contract between the two. Changing a field means updating `service.py` AND the
   display code: pure logic in `extension/lib/status.js` (unit-tested), widgets
-  in `extension/extension.js`.
+  in `extension/extension.js`. `ProviderStatus.sparkline` is the **consumption**
+  history (cumulative usage level for usage providers, balance-spend deltas
+  otherwise); quota providers also carry `quota_sparkline` (utilization %) —
+  the extension and `aium stats` render both, grouped per provider.
 
 ## Commands
 
@@ -20,8 +23,14 @@ uv sync --all-groups --locked   # install deps
 make uv.check                   # ruff lint + ty typecheck + ruff format --check
 make uv.test                    # pytest --cov aium --blockage (network blocked)
 make uv.typecheck / make uv.lint / make uv.format
-make ext-test                   # GJS unit tests for extension/lib (needs gjs)
+make ext-test                   # GJS unit tests for extension/lib + gjs syntax check of extension.js/prefs.js (needs gjs)
 ```
+
+`aium stats` renders a braille-sparkline dashboard from `status.json` +
+SQLite history (`spark.py` has the vendored renderer, `stats.py` the frame +
+live loop). Box colors mirror the extension health dot (quota ≥90/≥70, prepaid
+balance <`balance-warn`/<`balance-critical` defaults 10/1); `AIUM_THEME=light`
+switches the Catppuccin palette.
 
 Recipes use bare commands; the `uv.%` wrapper (`make uv.<target>`) runs them in
 the uv venv. Run `make uv.check` and `make ext-test` before considering work
