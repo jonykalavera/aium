@@ -40,6 +40,46 @@ def local_month_days(now: datetime | None = None) -> list[tuple[datetime, dateti
     return days
 
 
+def day_bounds_range(now: datetime | None = None, n: int = 30) -> list[tuple[datetime, datetime]]:
+    """Last `n` local days (oldest→newest, today last). [start, end) local midnights."""
+    now = now or datetime.now().astimezone()
+    local = now.astimezone()
+    today = local.replace(hour=0, minute=0, second=0, microsecond=0)
+    start = today - timedelta(days=n - 1)
+    return [(start + timedelta(days=i), start + timedelta(days=i + 1)) for i in range(n)]
+
+
+def week_bounds(now: datetime | None = None, n: int = 12) -> list[tuple[datetime, datetime]]:
+    """Last `n` ISO-8601 weeks (Monday 00:00 local → next Monday), oldest→newest."""
+    now = now or datetime.now().astimezone()
+    local = now.astimezone()
+    this_monday = (local - timedelta(days=local.weekday())).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    start = this_monday - timedelta(days=7 * (n - 1))
+    return [(start + timedelta(days=7 * i), start + timedelta(days=7 * (i + 1))) for i in range(n)]
+
+
+def month_bounds_range(now: datetime | None = None, n: int = 12) -> list[tuple[datetime, datetime]]:
+    """Last `n` calendar months (1st 00:00 local → next month 1st), oldest→newest."""
+    now = now or datetime.now().astimezone()
+    local = now.astimezone()
+    first = local.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    start = _shift_months(first, -(n - 1))
+    return [(_shift_months(start, i), _shift_months(start, i + 1)) for i in range(n)]
+
+
+def _shift_months(dt: datetime, months: int) -> datetime:
+    """`dt` shifted by `months` calendar months (handles year rollover).
+
+    Only valid for first-of-month datetimes (the caller always passes the 1st
+    of a month), where every target month is a legal replacement.
+    """
+    total = dt.year * 12 + (dt.month - 1) + months
+    year, zero_month = divmod(total, 12)
+    return dt.replace(year=year, month=zero_month + 1)
+
+
 def period_spend(
     snapshots: list[tuple[datetime, float]],
     start: datetime,

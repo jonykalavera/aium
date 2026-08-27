@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 
 from aium import ledger, storage
 from aium.models import BalanceProviderConfig, ManualProviderConfig, ProviderType
-from aium.service import _daily_series, _provider_daily_spend
+from aium.report import daily_series, provider_series
 
 
 def _ts(day: int) -> datetime:
@@ -75,7 +75,7 @@ def test_daily_spend_series_balance_usage_and_manual():
     storage.record_snapshot("ds", 6.0, "USD", ts=_ts(3))
     storage.record_snapshot("ds", 6.0, "USD", ts=_ts(4))
     ds = BalanceProviderConfig(id="ds", name="DeepSeek", type=ProviderType.balance, kind="deepseek")
-    assert _provider_daily_spend(ds, bounds) == [0.0, 1.0, 3.0, 0.0]
+    assert provider_series(ds, bounds) == [0.0, 1.0, 3.0, 0.0]
 
     storage.record_usage("or", 0.0, ts=_ts(1))
     storage.record_usage("or", 2.0, ts=_ts(2))
@@ -84,9 +84,9 @@ def test_daily_spend_series_balance_usage_and_manual():
     or_ = BalanceProviderConfig(
         id="or", name="OpenRouter", type=ProviderType.balance, kind="openrouter"
     )
-    assert _provider_daily_spend(or_, bounds) == [0.0, 2.0, 2.0, 0.0]
+    assert provider_series(or_, bounds) == [0.0, 2.0, 2.0, 0.0]
 
     manual = ManualProviderConfig(id="m", name="Manual", type=ProviderType.manual, cost=20)
-    assert _provider_daily_spend(manual, bounds) == [0.0, 0.0, 0.0, 0.0]
+    assert provider_series(manual, bounds) == [0.0, 0.0, 0.0, 0.0]
 
-    assert _daily_series([ds, or_, manual], bounds) == [0.0, 3.0, 5.0, 0.0]
+    assert daily_series([ds, or_, manual], bounds) == [0.0, 3.0, 5.0, 0.0]

@@ -18,6 +18,7 @@ from . import paths, storage
 from .config import (
     get_provider,
     load_providers,
+    load_settings,
     remove_provider,
     save_providers,
     upsert_provider,
@@ -30,6 +31,7 @@ from .models import (
     StatusFile,
 )
 from .providers.registry import all_kinds, get_spec
+from .report import build_report
 from .secrets import SecretsStore
 from .service import poll as run_poll
 from .stats import run_stats as run_stats_dashboard
@@ -336,6 +338,61 @@ def stats(
         width=shutil.get_terminal_size((80, 24)).columns,
         tty=sys.stdout.isatty(),
     )
+
+
+@app.command()
+def report(
+    group: str = typer.Option("day", "--group", help="day | week | month"),
+    periods: int | None = typer.Option(None, "--periods", min=1, help="Number of periods"),
+    provider_id: str | None = typer.Option(None, "--provider", help="Only this provider"),
+    as_json: bool = typer.Option(False, "--json", help="Print raw JSON"),
+) -> None:
+    """Show consumption (spend) history grouped by day, week or month.
+
+    Flat subscription costs (manual providers) are excluded — see `aium status`.
+    """
+    storage.init_db()
+    group = group.lower()
+    if group not in {"day", "week", "month"}:
+        console.print(f"[red]Unknown group[/red] '{group}'. Use day | week | month.")
+        raise typer.Exit(1)
+
+    if periods is None:
+        periods = {"day": 30, "week": 12, "month": 12}[group]
+
+    rows = build_report(group, periods, provider_id)
+
+    if as_json:
+        console.print_json(data=rows)
+        return
+
+    currency = load_settings().base_currency
+    provider_cols: list[str] = []
+    for row in rows:
+        for pid in row["providers"]:
+            if pid not in provider_cols:
+                provider_cols.append(pid)
+
+    table = Table()
+    table.add_column("period")
+    for pid in provider_cols:
+        table.add_column(pid, justify="right")
+    table.add_column(f"total ({currency})", justify="right")
+
+    for row in rows:
+        label = row["label"]
+        if group == "week":
+            start = datetime.fromisoformat(row["start"])
+            end = datetime.fromisoformat(row["end"]) - timedelta(days=1)
+            if (start.year, start.month) == (end.year, end.month):
+                label = f"{label} ({start:%b %d}\u2013{end.day})"
+            else:
+                label = f"{label} ({start:%b %d}\u2013{end:%b %d})"
+        cells = [label]
+        cells += [f"{row['providers'].get(pid, 0.0):.2f}" for pid in provider_cols]
+        cells.append(f"[bold]{row['total']:.2f}[/bold]")
+        table.add_row(*cells)
+    console.print(table)
 
 
 @app.callback(no_args_is_help=True, invoke_without_command=True)
