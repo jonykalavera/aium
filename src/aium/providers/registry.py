@@ -13,6 +13,7 @@ from .deepseek import DeepSeek
 from .google import Google
 from .kimi import Kimi
 from .openai import OpenAI
+from .opencode import OpenCodeGo
 from .openrouter import OpenRouter
 from .zai import ZAI
 
@@ -105,6 +106,16 @@ BALANCE_PROVIDERS: dict[str, ProviderSpec] = {
         usage_url="https://cursor.com/dashboard/usage",
         balance_kind="budget",
         balance_label="budget",
+    ),
+    "opencode-go": ProviderSpec(
+        kind="opencode-go",
+        name="OpenCode Go",
+        currency="USD",
+        pricing_url="https://opencode.ai/docs/go/",
+        provider_type=ProviderType.balance,
+        cls=OpenCodeGo,
+        uses_api_key=False,
+        usage_url="https://opencode.ai/dashboard",
     ),
     "zai": ProviderSpec(
         kind="zai",

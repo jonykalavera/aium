@@ -88,6 +88,7 @@ aium status
 | `anthropic` | OAuth (Claude Code) | spend vs monthly limit + quota windows | monthly budget remaining (`budget`) |
 | `google` | OAuth (Antigravity) | plan/tier + quota (paid tiers) | none |
 | `cursor` | IDE session | included+on-demand spend; remaining included budget; quota windows | remaining included usage (`budget`) |
+| `opencode-go` | Go subscription (auth.json) | quota windows (5h/weekly/monthly utilization) | none |
 | `zai` | API key | quota windows + plan | none |
 | `manual` | — | fixed subscription cost + renewal | — |
 
@@ -108,7 +109,10 @@ OAuth providers reuse the CLI's own credential files (`~/.codex/auth.json`,
 `~/.claude/.credentials.json`, `~/.gemini/oauth_creds.json`) — no API key
 needed. Cursor reads the signed-in IDE session from
 `~/.config/Cursor/User/globalStorage/state.vscdb` (or `cursor-agent`'s
-`~/.config/cursor/auth.json`). Their usage endpoints are **private/undocumented**
+`~/.config/cursor/auth.json`). OpenCode Go reads
+`~/.local/share/opencode/auth.json` (the `opencode-go` key). OpenCode's Zen
+pay-as-you-go balance is **not** exposed by any API endpoint (only the Go quota
+is), so it is not tracked. Their usage endpoints are **private/undocumented**
 and may break.
 
 ### Commands
