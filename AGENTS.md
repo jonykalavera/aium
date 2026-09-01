@@ -91,6 +91,16 @@ if it is holding a lock. `fetch_usage()` is included usage + on-demand
 overage; `fetch_balance()` is remaining included budget only (same currency,
 different pools).
 
+**OpenCode Go** (`uses_api_key=False`, quota-only) reads the `opencode-go` API
+key from `~/.local/share/opencode/auth.json` (a JSON map, `type: "api"`);
+tests override with `AIUM_OPENCODE_AUTH`. Hits the private
+`GET https://opencode.ai/zen/go/v1/usage` endpoint (Bearer) and reports three
+utilization windows (5h / weekly / monthly). No balance or spend endpoint —
+`fetch_balance()`/`fetch_usage()` return `None`. OpenCode's Zen pay-as-you-go
+balance (`BillingTable.balance`, workspace-level) is *not* exposed by any REST
+endpoint (only the web console's server functions read it), so it is not
+tracked.
+
 ## Storage / ledger
 
 - SQLite at `~/.local/share/aium/history.db` (tables `snapshots`,
