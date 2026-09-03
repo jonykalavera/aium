@@ -51,7 +51,7 @@ BALANCE_PROVIDERS: dict[str, ProviderSpec] = {
         pricing_url="https://platform.kimi.ai/docs/pricing/chat.md",
         provider_type=ProviderType.balance,
         cls=Kimi,
-        usage_url="https://platform.kimi.ai/console/usage",
+        usage_url="https://platform.kimi.ai/console/account",
     ),
     "openai": ProviderSpec(
         kind="openai",
@@ -115,16 +115,16 @@ BALANCE_PROVIDERS: dict[str, ProviderSpec] = {
         provider_type=ProviderType.balance,
         cls=OpenCodeGo,
         uses_api_key=False,
-        usage_url="https://opencode.ai/dashboard",
+        usage_url="https://opencode.ai/console/",
     ),
     "zai": ProviderSpec(
         kind="zai",
         name="Z.AI (GLM)",
         currency="USD",
-        pricing_url="https://z.ai/",
+        pricing_url="https://z.ai/subscribe",
         provider_type=ProviderType.balance,
         cls=ZAI,
-        usage_url="https://z.ai/",
+        usage_url="https://z.ai/manage-apikey/usage",
     ),
 }
 
