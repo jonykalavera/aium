@@ -1,4 +1,4 @@
-import {healthColor, isRelevant, panelLabel, providerDetail, severityColor, statsSummary, summaryText, tooltipText} from '../lib/status.js';
+import {healthColor, healthLevel, isRelevant, panelLabel, providerDetail, severityColor, statsSummary, summaryText, tooltipText} from '../lib/status.js';
 import {assertClose, assertDeepEqual, assertEqual, describe, it} from './_assert.js';
 
 const balanceProvider = {
@@ -192,6 +192,28 @@ describe('panelLabel', () => {
     it('hide with none', () => {
         const l = panelLabel(totals, 'spend_today', 'none');
         assertEqual(l.bottom, '');
+    });
+});
+
+describe('healthLevel', () => {
+    it('quota thresholds', () => {
+        const quota = pct => ({...balanceProvider, quota: [{label: '5h', utilization_pct: pct}]});
+        assertEqual(healthLevel(quota(95)), 2);
+        assertEqual(healthLevel(quota(80)), 1);
+        assertEqual(healthLevel(quota(50)), 0);
+    });
+    it('prepaid balance thresholds', () => {
+        const bal = available => ({
+            ...balanceProvider,
+            balance_kind: 'prepaid',
+            balance: {available, currency: 'USD'},
+        });
+        assertEqual(healthLevel(bal(0.5)), 2);
+        assertEqual(healthLevel(bal(5)), 1);
+        assertEqual(healthLevel(bal(25)), 0);
+    });
+    it('no signal returns null', () => {
+        assertEqual(healthLevel({type: 'manual', balance: null}), null);
     });
 });
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -179,9 +180,13 @@ def get_usage_level(provider_id: str, limit: int = 30, db: Path | None = None) -
 
 
 def write_status(status: StatusFile, status_path: Path | None = None) -> None:
+    """Write the status file atomically (tmp + rename) so file watchers (the
+    GNOME extension and the Omarchy plugin's FileView) never see a torn write."""
     status_path = status_path or paths.status_file()
     status_path.parent.mkdir(parents=True, exist_ok=True)
-    status_path.write_text(status.model_dump_json(indent=2))
+    tmp = status_path.with_name(f"{status_path.name}.tmp")
+    tmp.write_text(status.model_dump_json(indent=2))
+    os.replace(tmp, status_path)
 
 
 def read_status(status_path: Path | None = None) -> StatusFile | None:

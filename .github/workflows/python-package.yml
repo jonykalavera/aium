@@ -26,3 +26,5 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gjs
           make ext-test
+      - name: Check (omarchy plugin)
+        run: make omarchy-check

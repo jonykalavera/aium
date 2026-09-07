@@ -2,13 +2,46 @@
 
 from datetime import UTC, datetime, timedelta
 
+import pytest
+
 from aium import ledger, storage
-from aium.models import BalanceProviderConfig, ManualProviderConfig, ProviderType
+from aium.models import (
+    BalanceProviderConfig,
+    ManualProviderConfig,
+    ProviderType,
+    StatusFile,
+    Totals,
+)
 from aium.report import daily_series, provider_series
 
 
 def _ts(day: int) -> datetime:
     return datetime(2026, 8, day, 12, 0, tzinfo=UTC)
+
+
+def test_write_status_is_atomic(tmp_path, monkeypatch):
+    """Publishes via tmp + rename: watchers never see a torn file, and a
+    failed rename leaves the previous status.json untouched."""
+    status_path = tmp_path / "status.json"
+    status = StatusFile(totals=Totals(), providers=[])
+
+    storage.write_status(status, status_path)
+    assert storage.read_status(status_path) is not None
+    assert list(tmp_path.glob("*.tmp")) == []
+
+    good = status_path.read_bytes()
+
+    def boom(*args, **kwargs):
+        raise OSError("replace failed")
+
+    monkeypatch.setattr(storage.os, "replace", boom)
+    with pytest.raises(OSError):
+        storage.write_status(status, status_path)
+    assert status_path.read_bytes() == good
+
+    monkeypatch.undo()
+    storage.write_status(status, status_path)
+    assert storage.read_status(status_path) is not None
 
 
 def test_quota_history_roundtrip(tmp_path):

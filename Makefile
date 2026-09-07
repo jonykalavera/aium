@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: format lint check typecheck test ext-test
+.PHONY: format lint check typecheck test ext-test omarchy-sync omarchy-check omarchy-install
 
 PYTHON_DIRS ?= src tests
 UV_VERSION ?= 0.12.5
@@ -40,6 +40,19 @@ test:
 ext-test:
 	gjs -m extension/tests/run.js
 	./scripts/check-extension-syntax.sh
+
+# ── Omarchy shell plugin ──────────────────────────────────────────────────────
+# The display logic in omarchy/lib is GENERATED from extension/lib (the
+# source of truth); omarchy-check re-syncs and fails on drift. Local visual
+# iteration: make omarchy-install (hot-reloads in omarchy-shell).
+omarchy-sync:
+	python3 scripts/sync-omarchy-lib.py
+
+omarchy-check: omarchy-sync
+	python3 scripts/check-omarchy.py
+
+omarchy-install:
+	./scripts/omarchy-install.sh
 
 run-%:
 	./scripts/$*.sh
