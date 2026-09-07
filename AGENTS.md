@@ -1,6 +1,7 @@
 # AGENTS.md
 
-AI usage monitor: a Python CLI core + a GNOME Shell extension (passive outlet).
+AI usage monitor: a Python CLI core + display outlets (GNOME Shell extension
+and an Omarchy 4.x shell plugin).
 
 ## Two components, one contract
 
@@ -8,13 +9,31 @@ AI usage monitor: a Python CLI core + a GNOME Shell extension (passive outlet).
 - **`extension/`** — GJS (GNOME Shell 50, ESM). Pure display: reads
   `~/.cache/aium/status.json` and renders it. **No provider CRUD, no secrets** —
   everything is done via the CLI (`aium providers|keys ...`).
+- **`omarchy/` + `manifest.json`** — Quickshell bar-widget plugin (Omarchy
+  shell, QML). Same pure-display discipline: reads `status.json` via
+  `FileView` (dir-watch, no polling), no provider CRUD. `make omarchy-install`
+  rsyncs it to `~/.config/omarchy/plugins/jonykalavera.aium/` and enables it;
+  `omarchy plugin add https://github.com/jonykalavera/aium` installs it from
+  git (manifest lives at the repo root on purpose).
 - The JSON schema in `src/aium/models.py` (`StatusFile`/`ProviderStatus`) is the
-  contract between the two. Changing a field means updating `service.py` AND the
-  display code: pure logic in `extension/lib/status.js` (unit-tested), widgets
-  in `extension/extension.js`. `ProviderStatus.sparkline` is the **consumption**
+  contract between the core and BOTH outlets. Changing a field means updating
+  `service.py` AND the display code: pure logic in `extension/lib/status.js`
+  (unit-tested) shared by both UIs, widgets in `extension/extension.js` and
+  `omarchy/*.qml`. `ProviderStatus.sparkline` is the **consumption**
   history (cumulative usage level for usage providers, balance-spend deltas
   otherwise); quota providers also carry `quota_sparkline` (utilization %) —
   the extension and `aium stats` render both, grouped per provider.
+
+## Shared display logic (extension/lib → omarchy/lib)
+
+`extension/lib/{status,format}.js` are the source of truth. Quickshell's JS
+engine (Qt V4) does not support ES modules or `import` inside .js, so
+`make omarchy-sync` (`scripts/sync-omarchy-lib.py`) flattens them into a single
+generated `omarchy/lib/status.js` — **never edit `omarchy/lib` by hand**.
+`make omarchy-check` re-syncs and fails on drift (runs in CI; also sanity-checks
+`manifest.json` the way `omarchy plugin validate` does). Editing `omarchy/lib`
+content requires `omarchy restart shell` — QML edits hot-reload, but the shell
+caches JS scripts by URL.
 
 ## Commands
 
@@ -24,6 +43,8 @@ make uv.check                   # ruff lint + ty typecheck + ruff format --check
 make uv.test                    # pytest --cov aium --blockage (network blocked)
 make uv.typecheck / make uv.lint / make uv.format
 make ext-test                   # GJS unit tests for extension/lib + gjs syntax check of extension.js/prefs.js (needs gjs)
+make omarchy-check              # regenerate omarchy/lib + manifest/plugin checks (CI-safe)
+make omarchy-install            # dev-install the plugin into ~/.config/omarchy/plugins (hot-reload)
 ```
 
 `aium stats` renders a braille-sparkline dashboard from `status.json` +

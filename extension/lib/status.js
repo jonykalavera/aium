@@ -57,38 +57,42 @@ export function providerDetail(provider) {
     return detail;
 }
 
-const GOOD = [0.3, 0.85, 0.5];
-const WARN = [1.0, 0.7, 0.2];
-const CRITICAL = [1.0, 0.3, 0.3];
+// Severity ramp shared by health dots and sparklines: good, warn, critical.
+export const LEVEL_COLORS = [[0.3, 0.85, 0.5], [1.0, 0.7, 0.2], [1.0, 0.3, 0.3]];
 
-export function healthColor(provider, warnThreshold = 10, criticalThreshold = 1) {
-    // Quota health wins (about to hit a rate limit).
+// 0 (good) | 1 (warn) | 2 (critical) | null (no color). Quota health wins
+// (about to hit a rate limit), prepaid balance health comes second.
+export function healthLevel(provider, warnThreshold = 10, criticalThreshold = 1) {
     if (provider.quota?.length) {
         const peak = Math.max(...provider.quota.map(w => w.utilization_pct));
         if (peak >= 90)
-            return CRITICAL;
+            return 2;
         if (peak >= 70)
-            return WARN;
-        return GOOD;
+            return 1;
+        return 0;
     }
-    // Prepaid balance health.
     if (provider.balance && provider.balance_kind === 'prepaid') {
         const available = provider.balance.available;
         if (available < criticalThreshold)
-            return CRITICAL;
+            return 2;
         if (available < warnThreshold)
-            return WARN;
-        return GOOD;
+            return 1;
+        return 0;
     }
     return null;
 }
 
+export function healthColor(provider, warnThreshold = 10, criticalThreshold = 1) {
+    const level = healthLevel(provider, warnThreshold, criticalThreshold);
+    return level === null ? null : LEVEL_COLORS[level];
+}
+
 export function severityColor(pct) {
     if (pct >= 90)
-        return [1.0, 0.3, 0.3];
+        return LEVEL_COLORS[2];
     if (pct >= 70)
-        return [1.0, 0.7, 0.2];
-    return [0.3, 0.85, 0.5];
+        return LEVEL_COLORS[1];
+    return LEVEL_COLORS[0];
 }
 
 export function tooltipText(status) {

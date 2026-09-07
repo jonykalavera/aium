@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "jonykalavera.aium",
+  "name": "AI Usage",
+  "version": "0.1.0",
+  "author": "jonykalavera",
+  "description": "AI usage & balance monitor pill (reads aium's status.json)",
+  "kinds": ["bar-widget"],
+  "entryPoints": {
+    "barWidget": "omarchy/BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "AI Usage",
+    "description": "AI usage & balance monitor pill",
+    "category": "Info",
+    "defaultSection": "right",
+    "allowMultiple": false
+  }
+}
