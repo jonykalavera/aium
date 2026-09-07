@@ -62,10 +62,30 @@ to `~/.local/share/gnome-shell/extensions/aium@jonykalavera/`, compile the
 schema (`glib-compile-schemas schemas`) and enable it with
 `gnome-extensions enable aium@jonykalavera`.
 
+### Omarchy shell plugin
+
+On Omarchy 4.x, install the bar widget straight from this repo:
+
+```bash
+omarchy plugin add https://github.com/jonykalavera/aium --enable
+```
+
+The pill shows the top metric (default: month spend) with a worst-provider
+health dot; click opens the detail panel. Position it with
+`omarchy plugin enable jonykalavera.aium --section right` (or drag it in the
+bar) and tweak per-widget settings in `~/.config/omarchy/shell.json`:
+
+```json
+{ "id": "jonykalavera.aium", "top-metric": "balance", "balance-warn": 10 }
+```
+
+The plugin reads `~/.cache/aium/status.json` and refreshes as soon as the CLI
+polls — no timers.
+
 ### From source (development)
 
 ```bash
-./local-install.sh         # installs the CLI (uv tool), the systemd timer and the extension from this repo
+./local-install.sh         # installs the CLI (uv tool) + systemd timer, then the display outlets this machine uses (GNOME extension / Omarchy plugin, auto-detected; override with --gnome/--no-gnome and --omarchy/--no-omarchy)
 ```
 
 ## Quick start
